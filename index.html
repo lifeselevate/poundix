@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Poundix — Protótipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0D0B14; --surface:#17131F; --surface-2:#201A2E; --border:#2C2438;
+    --orange:#FF7A29; --purple:#7C3AED; --text:#F5F3F7; --muted:#9B93A8; --success:#33C48D;
+    box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:'Inter',-apple-system,sans-serif;}
+  h1,h2,h3{font-family:'Inter',sans-serif; font-weight:700;}
+
+  .meta-bar{position:sticky; top:0; z-index:50; background:rgba(13,11,20,.9); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border); padding:calc(14px + env(safe-area-inset-top,0px)) 20px 14px;
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;}
+  .meta-brand{display:flex; align-items:center; gap:10px; margin-right:auto;}
+  .meta-brand span{font-weight:700; font-size:16px;}
+  .switcher{display:flex; gap:6px; background:var(--surface); border:1px solid var(--border); padding:4px; border-radius:12px; overflow-x:auto;}
+  .switcher button{appearance:none; border:none; background:transparent; color:var(--muted); font-size:13px; font-weight:600;
+    padding:8px 14px; border-radius:8px; cursor:pointer; white-space:nowrap;}
+  .switcher button.active{background:linear-gradient(135deg,var(--orange),var(--purple)); color:#0D0B14;}
+  .switcher button:not(.active):hover{color:var(--text); background:var(--surface-2);}
+
+  .view{display:none;}
+  .view.active{display:block; animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0} to{opacity:1}}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px;}
+  .btn{appearance:none; border:none; cursor:pointer; font-weight:600; font-size:14px; padding:11px 18px; border-radius:10px; display:inline-flex; align-items:center; gap:8px;}
+  .btn:active{transform:scale(.97);}
+  .btn:disabled{opacity:.4; cursor:not-allowed;}
+  .btn-primary{background:linear-gradient(135deg,var(--orange),#ff9a5c); color:#1a0d00;}
+  .btn-ghost{background:var(--surface-2); color:var(--text); border:1px solid var(--border);}
+  .btn-ghost:hover{border-color:var(--purple);}
+  .eyebrow{color:var(--muted); font-size:13px; margin:0 0 4px;}
+  .title{font-size:24px; font-weight:700; margin:0 0 2px; letter-spacing:-.2px;}
+  .empty{color:var(--muted); font-size:13.5px; padding:24px 0; text-align:center;}
+
+  /* PUBLIC FORM */
+  #view-form{padding:32px 20px 64px;}
+  .form-shell{max-width:600px; margin:0 auto;}
+  .form-logo{display:flex; flex-direction:column; align-items:center; gap:14px; margin-bottom:40px;}
+  .form-logo img,.form-logo svg{width:48px; height:48px; border-radius:10px; object-fit:cover;}
+  .q-block{margin-bottom:32px;}
+  .q-label{display:block; font-size:16px; font-weight:600; margin-bottom:14px;}
+  .req{color:var(--orange);}
+  .inline-choices{display:flex; flex-wrap:wrap; gap:10px;}
+  .ichoice{appearance:none; cursor:pointer; font-weight:600; font-size:14px; border:1.5px solid var(--border);
+    background:transparent; color:var(--text); padding:11px 18px; border-radius:10px;}
+  .ichoice.picked{border-color:var(--btn-color,var(--orange)); background:var(--btn-color,var(--orange)); color:#1a0d00;}
+  .ichoice:hover{border-color:var(--purple);}
+  .q-input,.q-textarea{width:100%; background:var(--surface); border:1.5px solid var(--border); border-radius:12px;
+    color:var(--text); font-family:'Inter',sans-serif; font-size:15px; padding:14px 16px; outline:none;}
+  .q-textarea{min-height:90px; resize:vertical; font-family:inherit;}
+  .q-input:focus,.q-textarea:focus{border-color:var(--btn-color,var(--orange));}
+  .q-select{width:100%; background:var(--surface); border:1.5px solid var(--border); border-radius:12px;
+    color:var(--text); font-family:'Inter',sans-serif; font-size:15px; padding:14px 16px; outline:none; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%239B93A8' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 16px center;}
+  .q-select:focus{border-color:var(--btn-color,var(--orange));}
+  .choice-2col{display:grid; grid-template-columns:1fr 1fr;}
+  .choice-2col .ichoice{width:100%; padding:16px;}
+  .q-progress{width:100%; height:6px; border-radius:3px; background:rgba(127,127,127,.2); margin-bottom:10px; overflow:hidden;}
+  .q-progress-bar{height:100%; border-radius:3px; transition:width .25s ease;}
+  .q-step-count{font-size:12.5px; opacity:.65; margin:0 0 28px;}
+  .q-step-actions{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:8px;}
+  .q-step-actions .btn-primary{flex:1;}
+  #view-form{background:var(--pf-bg, var(--bg)); color:var(--pf-text, var(--text));}
+  #view-form .q-input, #view-form .q-textarea, #view-form .q-select{background:rgba(127,127,127,.10); border-color:rgba(127,127,127,.35); color:inherit;}
+  #view-form .ichoice{border-color:rgba(127,127,127,.35); color:inherit;}
+  #view-form .q-label{color:inherit;}
+
+  /* UNIFIED APP SHELL */
+  .layout{display:grid; grid-template-columns:250px 1fr;}
+  .sidebar{background:var(--surface); border-right:1px solid var(--border); padding:22px 16px;
+    min-height:calc(100vh - 62px); position:sticky; top:62px; align-self:start; display:flex; flex-direction:column;}
+  .side-brand{display:flex; align-items:center; gap:10px; padding:0 8px 22px;}
+  .side-brand strong{font-size:15px;}
+  .side-brand small{display:block; color:var(--muted); font-size:11px;}
+  .side-nav{flex:1;}
+  .side-nav a{display:flex; align-items:center; gap:10px; color:var(--muted); text-decoration:none; cursor:pointer;
+    padding:10px 12px; border-radius:10px; font-size:14px; font-weight:500; margin-bottom:2px;}
+  .side-nav a.on{background:var(--surface-2); color:var(--text); box-shadow:inset 2px 0 0 var(--orange);}
+  .side-nav a:hover{color:var(--text);}
+  .side-account{border-top:1px solid var(--border); padding-top:14px; margin-top:14px;}
+  .side-account .em{font-size:13px; font-weight:600;}
+  .side-account .role{font-size:11.5px; color:var(--muted); margin-bottom:10px;}
+  .side-account button{width:100%; background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    padding:9px; border-radius:10px; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;}
+  .main{padding:28px 30px;}
+  .topline{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px; gap:16px; flex-wrap:wrap;}
+  .filters{display:flex; gap:6px;}
+  .filters button{background:var(--surface); border:1px solid var(--border); color:var(--muted); font-size:12.5px; padding:7px 12px; border-radius:8px; cursor:pointer;}
+  .filters button.on{color:var(--bg); background:var(--orange); border-color:var(--orange); font-weight:600;}
+
+  .stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px;}
+  .stat{padding:18px;}
+  .stat-top{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px;}
+  .stat .k{color:var(--muted); font-size:12.5px;}
+  .stat .v{font-size:28px; font-weight:700;}
+  .stat .small-note{font-size:11.5px; color:var(--muted); margin-top:4px;}
+  .ic{width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .ic-orange{background:rgba(255,122,41,.16); color:var(--orange);}
+  .ic-purple{background:rgba(124,58,237,.2); color:#b79bff;}
+  .grid-2{display:grid; grid-template-columns:1.5fr 1fr; gap:16px; margin-top:16px;}
+  .legend-item{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:13.5px;}
+  .legend-item:last-child{border-bottom:none;}
+  .dotc{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:8px;}
+  table.resp{width:100%; border-collapse:collapse; margin-top:14px;}
+  table.resp th{text-align:left; color:var(--muted); font-size:12px; font-weight:500; padding:8px 10px; border-bottom:1px solid var(--border);}
+  table.resp td{padding:12px 10px; border-bottom:1px solid var(--border); font-size:13.5px;}
+  .tag{padding:3px 9px; border-radius:20px; font-size:11.5px; font-weight:600;}
+  .tag.orange{background:rgba(255,122,41,.15); color:var(--orange);}
+  .tag.purple{background:rgba(124,58,237,.2); color:#b79bff;}
+  select.mini{background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:5px 8px; font-size:12px;}
+
+  .insight-card{border-left:3px solid var(--orange); padding:14px 16px; background:var(--surface-2); border-radius:10px; margin-bottom:10px;}
+  .ins-title{font-weight:700; font-size:14px; margin-bottom:8px;}
+  .ins-row{font-size:13px; line-height:1.5; margin-bottom:5px; color:var(--text);}
+  .ins-row:last-child{margin-bottom:0;}
+  .ins-tag{display:inline-block; font-size:10px; font-weight:700; letter-spacing:.04em; color:var(--orange);
+    background:rgba(255,122,41,.14); padding:2px 7px; border-radius:5px; margin-right:8px; vertical-align:1px;}
+  .ins-tag-muted{color:var(--muted); background:var(--surface);}
+  .ins-tag-rec{color:#b79bff; background:rgba(124,58,237,.18);}
+
+  /* ADMIN builder */
+  .admin-tabs{display:flex; gap:8px; margin-bottom:20px;}
+  .admin-tabs button{background:var(--surface); border:1px solid var(--border); color:var(--muted); font-size:13px; font-weight:600; padding:9px 16px; border-radius:10px; cursor:pointer;}
+  .admin-tabs button.on{background:var(--surface-2); color:var(--text); border-color:var(--purple);}
+  .admin-sub{display:none;}
+  .admin-sub.active{display:block;}
+  .chpanel-body{display:none;}
+  .chpanel-body.active{display:block;}
+  .lpanel-body{display:none;}
+  .lpanel-body.active{display:block;}
+  .builder-grid{display:grid; grid-template-columns:1.3fr 1fr; gap:18px;}
+  .q-item{border:1px solid var(--border); border-radius:12px; background:var(--surface-2); margin-bottom:10px; padding:14px;}
+  .q-item-head{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .q-num{width:24px; height:24px; border-radius:50%; background:var(--surface); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--muted); flex-shrink:0;}
+  .q-item-head input[type=text]{flex:1; background:transparent; border:none; border-bottom:1px solid var(--border);
+    color:var(--text); font-size:14.5px; font-weight:600; padding:6px 2px; outline:none;}
+  .q-item-head input[type=text]:focus{border-bottom-color:var(--orange);}
+  .q-item-row2{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .q-item-row2 label{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px;}
+  .q-item select{background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:6px 8px; font-size:12.5px;}
+  .icon-btn{width:30px;height:30px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--muted);
+    display:flex;align-items:center;justify-content:center;cursor:pointer; flex-shrink:0;}
+  .icon-btn:hover{color:var(--text); border-color:var(--purple);}
+  .opt-input{width:100%; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text);
+    font-size:12.5px; padding:7px 9px; margin-top:8px; outline:none;}
+  .q-item-footer{display:flex; align-items:center; justify-content:space-between; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);}
+  .req-toggle{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); cursor:pointer;}
+  .toggle{width:36px; height:21px; border-radius:20px; background:var(--border); position:relative; flex-shrink:0;}
+  .toggle.on{background:var(--orange);}
+  .toggle i{position:absolute; top:2px; left:2px; width:17px; height:17px; background:#fff; border-radius:50%; transition:left .15s;}
+  .toggle.on i{left:17px;}
+  .q-actions{display:flex; gap:6px;}
+  .preview-phone{background:var(--surface-2); border-radius:20px; border:1px solid var(--border); padding:26px 20px; position:sticky; top:80px;}
+  .appearance-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; max-width:640px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:12.5px; color:var(--muted); margin-bottom:6px;}
+  .field input[type=text]{width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:10px;
+    color:var(--text); padding:10px 12px; font-size:13.5px; outline:none;}
+  .field input[type=color]{width:52px; height:36px; border:1px solid var(--border); border-radius:8px; background:none; cursor:pointer;}
+  .color-row{display:flex; align-items:center; gap:10px;}
+  .logo-upload{display:flex; align-items:center; gap:12px;}
+  .logo-upload img{width:44px; height:44px; border-radius:10px; object-fit:cover; background:var(--surface-2);}
+
+  /* unsaved-changes bar */
+  .save-bar{display:none; align-items:center; gap:12px; background:rgba(255,122,41,.1); border:1px solid rgba(255,122,41,.35);
+    border-radius:12px; padding:12px 16px; margin-bottom:18px; font-size:13px;}
+  .save-bar.show{display:flex;}
+  .save-bar .dot-warn{width:8px; height:8px; border-radius:50%; background:var(--orange); flex-shrink:0;}
+  .save-bar span{flex:1;}
+
+  /* LEADERS / DISTRIBUTION / LEADER AREA */
+  .two-col{display:grid; grid-template-columns:1.3fr 1fr; gap:16px;}
+  .form-card input, .form-card select{width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:10px;
+    color:var(--text); padding:11px 12px; font-size:13.5px; outline:none; margin-bottom:10px;}
+  .leader-row{display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border); font-size:13.5px; gap:10px;}
+  .leader-row:last-child{border-bottom:none;}
+  .leader-avatar{width:36px; height:36px; border-radius:50%; object-fit:cover; background:var(--surface); flex-shrink:0; display:flex; align-items:center; justify-content:center; color:var(--muted);}
+  .leader-row .nm{font-weight:600;}
+  .leader-row .mn{color:var(--muted); font-size:12px;}
+  .rule-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px;}
+  .row-flex{display:flex; align-items:center; gap:10px; flex:1;}
+  .age-inputs{display:flex; gap:8px;}
+  .profile-card{display:flex; align-items:center; gap:16px; margin-bottom:18px;}
+  .profile-card .leader-avatar{width:64px; height:64px;}
+  .leader-select{max-width:320px; margin-bottom:20px;}
+
+  @media (max-width:820px){
+    .layout{grid-template-columns:1fr;}
+    .sidebar{display:none;}
+    .stat-grid{grid-template-columns:repeat(2,1fr);}
+    .grid-2{grid-template-columns:1fr;}
+    .builder-grid{grid-template-columns:1fr;}
+    .appearance-grid{grid-template-columns:1fr;}
+    .two-col{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="meta-bar">
+  <div class="meta-brand">
+    <svg width="22" height="22" viewBox="0 0 100 100" fill="none"><path d="M30 20 L60 20 C72 20 80 30 80 42 C80 54 70 62 58 62 L44 62 L44 72 L30 88 L30 62 Z" fill="url(#gm)"/><defs><linearGradient id="gm" x1="30" y1="20" x2="80" y2="88"><stop offset="0" stop-color="#7C3AED"/><stop offset="1" stop-color="#FF7A29"/></linearGradient></defs></svg>
+    <span>Poundix — Protótipo</span>
+  </div>
+  <div class="switcher" id="switcher">
+    <button data-view="form" class="active">Questionário</button>
+    <button data-view="church">Painel da igreja</button>
+    <button data-view="leaderarea">Área do líder</button>
+    <button data-view="global">Admin Poundix</button>
+  </div>
+</div>
+
+<!-- ============ VIEW 1: QUESTIONÁRIO PÚBLICO ============ -->
+<section id="view-form" class="view active">
+  <div class="form-shell">
+    <div class="form-logo" id="publicLogoBlock"></div>
+    <div id="publicQuestions"></div>
+  </div>
+</section>
+
+<!-- ============ VIEW 2: PAINEL DA IGREJA ============ -->
+<section id="view-church" class="view">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="side-brand">
+        <svg width="26" height="26" viewBox="0 0 100 100" fill="none"><path d="M30 20 L60 20 C72 20 80 30 80 42 C80 54 70 62 58 62 L44 62 L44 72 L30 88 L30 62 Z" fill="url(#gd)"/><defs><linearGradient id="gd" x1="30" y1="20" x2="80" y2="88"><stop offset="0" stop-color="#7C3AED"/><stop offset="1" stop-color="#FF7A29"/></linearGradient></defs></svg>
+        <div><strong id="sideName">Vida Nova</strong><small>Gestão de visitantes</small></div>
+      </div>
+      <nav class="side-nav">
+        <a class="chpanel on" data-panel="dashboard" onclick="showChurchPanel('dashboard')" data-icon="layout"> Dashboard</a>
+        <a class="chpanel" data-panel="visitors" onclick="showChurchPanel('visitors')" data-icon="users"> Visitantes</a>
+        <a class="chpanel" data-panel="leaders" onclick="showChurchPanel('leaders')" data-icon="shield"> Líderes e ministérios</a>
+        <a class="chpanel" data-panel="cells" onclick="showChurchPanel('cells')" data-icon="home"> Células</a>
+        <a class="chpanel" data-panel="distribution" onclick="showChurchPanel('distribution')" data-icon="shuffle"> Distribuição</a>
+        <a class="chpanel" data-panel="messages" onclick="showChurchPanel('messages')" data-icon="mail"> Mensagens</a>
+        <a class="chpanel" data-panel="admin" onclick="showChurchPanel('admin')" data-icon="edit"> Editor do questionário</a>
+        <a class="chpanel" data-panel="settings" onclick="showChurchPanel('settings')" data-icon="settings"> Configurações</a>
+      </nav>
+      <div class="side-account">
+        <div class="em">poundix1@gmail.com</div>
+        <div class="role">Administrador</div>
+        <button><span class="ico" data-icon="logout"></span> Sair</button>
+      </div>
+    </aside>
+    <main class="main">
+
+      <div class="chpanel-body active" id="cp-dashboard">
+        <div class="topline">
+          <div><p class="eyebrow">Dashboard</p><h1 class="title">Visão geral dos visitantes</h1></div>
+          <div class="filters" id="periodFilters">
+            <button data-days="7" onclick="setPeriod(7)">7 dias</button>
+            <button data-days="30" class="on" onclick="setPeriod(30)">30 dias</button>
+            <button data-days="90" onclick="setPeriod(90)">90 dias</button>
+            <button data-days="0" onclick="setPeriod(0)">Tudo</button>
+          </div>
+        </div>
+        <div class="stat-grid" id="dashStats"></div>
+        <div class="grid-2">
+          <div class="card">
+            <h3 style="margin:0 0 4px; font-size:15px;">Visitantes ao longo do tempo</h3>
+            <p style="color:var(--muted); font-size:12.5px; margin:0 0 10px;">Respostas no período selecionado</p>
+            <svg viewBox="0 0 760 160" width="100%" height="160" preserveAspectRatio="none">
+              <line x1="0" y1="10" x2="760" y2="10" stroke="var(--border)" stroke-width="1"/>
+              <line x1="0" y1="80" x2="760" y2="80" stroke="var(--border)" stroke-width="1"/>
+              <line x1="0" y1="150" x2="760" y2="150" stroke="var(--border)" stroke-width="1"/>
+              <polyline id="dashLine" points="0,150 760,150" fill="none" stroke="var(--orange)" stroke-width="2.5"/>
+            </svg>
+          </div>
+          <div class="card">
+            <h3 style="margin:0 0 12px; font-size:15px;">Status dos visitantes</h3>
+            <div id="dashLegend"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <h3 style="margin:0 0 4px; font-size:15px;">Velocidade da equipe</h3>
+          <p id="velSentence" style="color:var(--muted); font-size:12.5px; margin:0 0 14px;"></p>
+          <div class="stat-grid" id="velStats" style="margin-bottom:0;"></div>
+        </div>
+        <div class="grid-2">
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Jornada do visitante</h3><div id="funnelBox"></div></div>
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Retorno</h3><div id="returnBox"></div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Ministérios mais procurados</h3><div id="topInterests"></div></div>
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Interesses por faixa etária</h3><div id="interestAge"></div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Interesses: período atual vs. anterior</h3><div id="interestPeriod"></div></div>
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Células e visitantes sem interesse</h3><div id="cellBox"></div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Distribuição por líder</h3><div id="distLeaderBox"></div></div>
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Distribuição por célula</h3><div id="distCellBox"></div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Visitantes por faixa etária</h3><div id="ageBreakdown"></div></div>
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Origem dos visitantes</h3><div id="originBreakdown"></div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Dias com mais visitantes</h3><div id="dayBox"></div></div>
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Horários com maior volume</h3><div id="hourBox"></div></div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <h3 style="margin:0 0 4px; font-size:15px;"><span class="ico" data-icon="activity" style="display:inline-block; vertical-align:-3px; margin-right:6px;"></span>Insights</h3>
+          <p style="color:var(--muted); font-size:12.5px; margin:0 0 12px;">Calculados a partir de dados agregados e anônimos do período selecionado, sem nomes nem contatos.</p>
+          <div id="insightsBox"></div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <h3 style="margin:0 0 4px; font-size:15px;">Respostas recentes</h3>
+          <div id="dashRecent"></div>
+        </div>
+      </div>
+
+      <div class="chpanel-body" id="cp-visitors">
+        <div class="topline"><div><p class="eyebrow">Visitantes</p><h1 class="title">Todos os visitantes</h1></div></div>
+        <div class="card"><div id="visitorsList"></div></div>
+      </div>
+
+      <div class="chpanel-body" id="cp-leaders">
+        <div class="topline"><div><p class="eyebrow">Líderes e ministérios</p><h1 class="title">Quem acompanha os visitantes</h1></div></div>
+        <div class="two-col">
+          <div class="card form-card">
+            <h3 style="margin:0 0 14px; font-size:15px;">Novo líder</h3>
+            <input type="text" id="ldName" placeholder="Nome completo">
+            <div class="logo-upload" style="margin-bottom:10px;">
+              <img id="ldPhotoPreview" class="leader-avatar" src="">
+              <input type="file" accept="image/*" onchange="handleLeaderPhoto(event)">
+            </div>
+            <input type="text" id="ldEmail" placeholder="E-mail">
+            <input type="text" id="ldWhats" placeholder="WhatsApp">
+            <select id="ldType">
+              <option value="ministerio">Líder de ministério</option>
+              <option value="celula">Líder de célula</option>
+              <option value="acompanhamento">Líder de acompanhamento</option>
+              <option value="outro">Outro responsável</option>
+            </select>
+            <input type="text" id="ldMinistry" placeholder="Ministério(s) — separados por ; (opcional)">
+            <input type="text" id="ldRole" placeholder="Função (ex.: Líder, Coordenador)">
+            <div class="age-inputs">
+              <input type="text" id="ldAgeMin" placeholder="Idade mín. (opcional)">
+              <input type="text" id="ldAgeMax" placeholder="Idade máx. (opcional)">
+            </div>
+            <select id="ldResp">
+              <option value="principal">Responsável principal</option>
+              <option value="secundario">Responsável secundário</option>
+            </select>
+            <button class="btn btn-primary" style="width:100%;" onclick="addLeader()"><span class="ico" data-icon="plus"></span> Cadastrar líder</button>
+          </div>
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Equipe</h3><div id="leadersList"></div></div>
+        </div>
+      </div>
+
+      <div class="chpanel-body" id="cp-cells">
+        <div class="topline"><div><p class="eyebrow">Células</p><h1 class="title">Células da igreja</h1></div></div>
+        <div class="two-col">
+          <div class="card form-card">
+            <h3 style="margin:0 0 14px; font-size:15px;">Nova célula</h3>
+            <input type="text" id="cName" placeholder="Nome da célula">
+            <p style="color:var(--muted); font-size:12px; margin:0 0 6px;">Líder(es)</p>
+            <div class="inline-choices" id="cLeaders" style="margin-bottom:12px;"></div>
+            <select id="cDay">
+              <option value="">Dia da semana</option>
+              <option>Domingo</option><option>Segunda</option><option>Terça</option><option>Quarta</option><option>Quinta</option><option>Sexta</option><option>Sábado</option>
+            </select>
+            <input type="time" id="cTime">
+            <input type="text" id="cRegion" placeholder="Região/bairro (opcional)">
+            <div class="age-inputs">
+              <input type="text" id="cAgeMin" placeholder="Idade mín. (opcional)">
+              <input type="text" id="cAgeMax" placeholder="Idade máx. (opcional)">
+            </div>
+            <select id="cStatus"><option value="active">Ativa</option><option value="inactive">Inativa</option></select>
+            <button class="btn btn-primary" style="width:100%;" onclick="addCell()"><span class="ico" data-icon="plus"></span> Cadastrar célula</button>
+          </div>
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Células cadastradas</h3><div id="cellsList"></div></div>
+        </div>
+      </div>
+
+      <div class="chpanel-body" id="cp-distribution">
+        <div class="topline"><div><p class="eyebrow">Distribuição</p><h1 class="title">Direcionamento automático</h1></div></div>
+        <p style="color:var(--muted); font-size:13px; margin:-14px 0 16px;">Cada visitante pode gerar várias atribuições independentes (ministérios, célula, acompanhamento). Cada atribuição tem seu próprio status e histórico.</p>
+        <div class="card" style="margin-bottom:16px;">
+          <h3 style="margin:0 0 6px; font-size:15px;">Regras automáticas</h3>
+          <div class="rule-row"><span>Interesse em ministério vai para o líder daquele ministério</span><label class="req-toggle" onclick="toggleDist('autoMinistry')"><span class="toggle" id="tgMin"><i></i></span></label></div>
+          <div class="rule-row"><span>Interesse em célula segue o fluxo de células</span><label class="req-toggle" onclick="toggleDist('autoCell')"><span class="toggle" id="tgCell"><i></i></span></label></div>
+        </div>
+        <div class="two-col">
+          <div class="card form-card">
+            <h3 style="margin:0 0 14px; font-size:15px;">Nova regra</h3>
+            <p style="color:var(--muted); font-size:12px; margin:0 0 6px;">SE (todas as condições preenchidas precisam ser verdadeiras)</p>
+            <select id="ruleInterest"></select>
+            <div class="age-inputs">
+              <input type="text" id="ruleMin" placeholder="Idade mínima">
+              <input type="text" id="ruleMax" placeholder="Idade máxima">
+            </div>
+            <select id="ruleCell"><option value="">Interesse em célula: tanto faz</option><option value="sim">Interesse em célula: Sim</option></select>
+            <select id="ruleQ" onchange="fillRuleValues()"></select>
+            <select id="ruleQVal"></select>
+            <p style="color:var(--muted); font-size:12px; margin:6px 0 6px;">ENTÃO</p>
+            <select id="ruleKind" onchange="fillRuleTarget()">
+              <option value="ministerio">Atribuir a ministério</option>
+              <option value="lider">Atribuir a líder</option>
+              <option value="celula">Atribuir a célula</option>
+              <option value="responsavel">Atribuir a responsável</option>
+            </select>
+            <select id="ruleTarget"></select>
+            <button class="btn btn-primary" style="width:100%;" onclick="addRule()"><span class="ico" data-icon="plus"></span> Criar regra</button>
+          </div>
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Regras ativas</h3><div id="rulesList"></div>
+            <button class="btn btn-ghost" style="margin-top:12px;" onclick="reapplyRules()">Reaplicar aos visitantes sem responsável</button></div>
+        </div>
+        <div class="grid-2">
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Atribuições por líder</h3><div id="distStats"></div></div>
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Atribuições por célula</h3><div id="distCells"></div></div>
+        </div>
+      </div>
+
+      <div class="chpanel-body" id="cp-messages">
+        <div class="topline"><div><p class="eyebrow">Mensagens</p><h1 class="title">Mensagem automática</h1></div></div>
+        <div class="card">
+          <div class="field"><label>Enviada ao visitante após o preenchimento</label>
+            <input type="text" id="apMsgAuto" value="Olá! Obrigado por visitar nossa igreja. Foi uma alegria receber você. Em breve, alguém da nossa equipe entrará em contato." style="width:100%; max-width:560px;">
+          </div>
+          <p style="color:var(--muted); font-size:12.5px;">Envio automático via WhatsApp ainda não conectado nesta etapa.</p>
+        </div>
+      </div>
+
+      <div class="chpanel-body" id="cp-admin">
+        <div class="topline"><div><p class="eyebrow">Painel de administrador</p><h1 class="title">Editor do questionário</h1></div>
+          <button class="btn btn-ghost" onclick="switchView('form')">Visualizar questionário</button>
+        </div>
+        <div class="save-bar" id="saveBar">
+          <span class="ico" data-icon="alert-circle"></span>
+          <span>Você tem alterações não salvas. Elas só valem para o questionário publicado depois de salvar.</span>
+          <button class="btn btn-ghost" onclick="discardDraft()">Descartar</button>
+          <button class="btn btn-primary" onclick="saveDraft()"><span class="ico" data-icon="check"></span> Salvar</button>
+        </div>
+        <div class="admin-tabs">
+          <button class="on" data-tab="questions" onclick="showAdminTab('questions')">Questionário</button>
+          <button data-tab="appearance" onclick="showAdminTab('appearance')">Aparência</button>
+        </div>
+        <div class="admin-sub active" id="tab-questions">
+          <div class="topline" style="margin-bottom:16px;"><div></div><button class="btn btn-primary" onclick="addQuestion()"><span class="ico" data-icon="plus"></span> Adicionar pergunta</button></div>
+          <div class="builder-grid">
+            <div id="builderList"></div>
+            <div class="preview-phone"><p class="eyebrow" style="margin-bottom:14px;">Pré-visualização (rascunho)</p><div id="builderPreview"></div></div>
+          </div>
+        </div>
+        <div class="admin-sub" id="tab-appearance">
+          <div class="appearance-grid">
+            <div class="field"><label>Nome da igreja</label><input type="text" id="apChurchName" oninput="updateDraftAppearance()"></div>
+            <div class="field"><label>Título do questionário</label><input type="text" id="apTitle" oninput="updateDraftAppearance()"></div>
+            <div class="field" style="grid-column:1/-1;"><label>Mensagem final (confirmação)</label><input type="text" id="apFinal" oninput="updateDraftAppearance()"></div>
+            <div class="field"><label>Logo</label><div class="logo-upload"><img id="apLogoPreview" src=""><input type="file" accept="image/*" onchange="handleLogoUpload(event)"></div></div>
+            <div class="field"><label>Cor principal / botões</label><div class="color-row"><input type="color" id="apPrimary" oninput="updateDraftAppearance()"></div></div>
+            <div class="field"><label>Cor de fundo do questionário</label><div class="color-row"><input type="color" id="apBg" oninput="updateDraftAppearance()"><span style="font-size:12px; color:var(--muted)">branco, preto ou qualquer cor</span></div></div>
+            <div class="field"><label>Cor do texto</label><div class="color-row"><input type="color" id="apText" oninput="updateDraftAppearance()"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chpanel-body" id="cp-settings">
+        <div class="topline"><div><p class="eyebrow">Configurações</p><h1 class="title">Dados da igreja</h1></div></div>
+        <div class="card" style="max-width:480px;">
+          <p style="font-size:13.5px; margin:0 0 6px;">Nome: <b id="stChurchNameDisplay"></b></p>
+          <p style="color:var(--muted); font-size:12.5px;">Plano atual: <span class="tag orange">Pro</span></p>
+          <p style="color:var(--muted); font-size:12px; margin-top:10px;">Nome e identidade visual são editados em Editor do questionário → Aparência.</p>
+        </div>
+        <div class="card" style="max-width:480px; margin-top:16px;">
+          <h3 style="margin:0 0 6px; font-size:15px;">Dados de demonstração</h3>
+          <p style="color:var(--muted); font-size:12.5px; margin:0 0 12px;">Gera líderes, células e cerca de 45 visitantes de exemplo espalhados pelos últimos 60 dias para testar o dashboard.</p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="seedDemo()">Gerar dados de exemplo</button>
+            <button class="btn btn-ghost" onclick="clearResponses()">Apagar visitantes</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</section>
+
+<!-- ============ VIEW 3: ÁREA DO LÍDER ============ -->
+<section id="view-leaderarea" class="view">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="side-brand">
+        <svg width="26" height="26" viewBox="0 0 100 100" fill="none"><path d="M30 20 L60 20 C72 20 80 30 80 42 C80 54 70 62 58 62 L44 62 L44 72 L30 88 L30 62 Z" fill="url(#gl)"/><defs><linearGradient id="gl" x1="30" y1="20" x2="80" y2="88"><stop offset="0" stop-color="#7C3AED"/><stop offset="1" stop-color="#FF7A29"/></linearGradient></defs></svg>
+        <div><strong>Área do líder</strong><small>Meus acompanhamentos</small></div>
+      </div>
+      <nav class="side-nav">
+        <a class="lpanel on" data-panel="ldash" onclick="showLeaderPanel('ldash')" data-icon="layout"> Dashboard</a>
+        <a class="lpanel" data-panel="lfollow" onclick="showLeaderPanel('lfollow')" data-icon="repeat"> Meus acompanhamentos</a>
+        <a class="lpanel" data-panel="lassigned" onclick="showLeaderPanel('lassigned')" data-icon="user-plus"> Contatos atribuídos</a>
+        <a class="lpanel" data-panel="lhistory" onclick="showLeaderPanel('lhistory')" data-icon="clock"> Histórico</a>
+        <a class="lpanel" data-panel="lprofile" onclick="showLeaderPanel('lprofile')" data-icon="shield"> Meu perfil</a>
+      </nav>
+    </aside>
+    <main class="main">
+      <div class="topline">
+        <div><p class="eyebrow">Área do líder</p><h1 class="title">Bem-vindo(a)</h1></div>
+        <select class="q-select leader-select" id="leaderViewSelect" onchange="renderLeaderArea()" style="max-width:260px;"></select>
+      </div>
+
+      <div class="lpanel-body active" id="lp-ldash">
+        <div class="stat-grid" id="leaderStats"></div>
+      </div>
+      <div class="lpanel-body" id="lp-lfollow">
+        <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Em acompanhamento</h3><div id="leaderFollowList"></div></div>
+      </div>
+      <div class="lpanel-body" id="lp-lassigned">
+        <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Novos contatos (pendente / contatado)</h3><div id="leaderAssignedList"></div></div>
+      </div>
+      <div class="lpanel-body" id="lp-lhistory">
+        <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Concluídos, sem interesse ou não respondeu</h3><div id="leaderHistoryList"></div></div>
+      </div>
+      <div class="lpanel-body" id="lp-lprofile">
+        <div class="card" id="leaderProfileCard"></div>
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ============ VIEW 4: PAINEL GLOBAL POUNDIX ============ -->
+<section id="view-global" class="view">
+  <div style="padding:32px 20px 64px;">
+    <div style="max-width:1180px; margin:0 auto;">
+      <div class="topline">
+        <div><p class="eyebrow">Poundix Admin</p><h1 class="title">Visão geral do negócio</h1></div>
+        <button class="btn btn-primary" onclick="toggleChurchForm()"><span class="ico" data-icon="plus"></span> Cadastrar igreja</button>
+      </div>
+      <div class="card" id="churchForm" style="display:none; margin-bottom:16px;">
+        <h3 style="margin:0 0 14px; font-size:15px;">Nova igreja</h3>
+        <div class="appearance-grid" style="max-width:none;">
+          <div class="field"><label>Nome da igreja *</label><input type="text" id="ncName"></div>
+          <div class="field"><label>E-mail do administrador *</label><input type="email" id="ncEmail"></div>
+          <div class="field"><label>Valor cobrado (R$/mês) *</label><input type="number" id="ncValor" min="0" step="1"></div>
+          <div class="field"><label>Plano (opcional)</label><input type="text" id="ncPlano" placeholder="ex.: 100 a 300 visitantes"></div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-primary" onclick="addChurch()">Salvar igreja</button>
+          <button class="btn btn-ghost" onclick="toggleChurchForm()">Cancelar</button>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="card stat"><div class="stat-top"><div class="k">MRR (receita recorrente)</div><div class="ic ic-orange"><span class="ico" data-icon="dollar"></span></div></div><div class="v" id="gMrr">R$ 0</div><div class="small-note" id="gMrrNote"></div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Igrejas ativas</div><div class="ic ic-purple"><span class="ico" data-icon="users"></span></div></div><div class="v" id="gActive">0</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Novas igrejas (cadastradas)</div><div class="ic ic-orange"><span class="ico" data-icon="user-plus"></span></div></div><div class="v" id="gNew">0</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Churn (mês)</div><div class="ic ic-purple"><span class="ico" data-icon="trending-down"></span></div></div><div class="v">1</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Respostas coletadas (rede toda)</div><div class="ic ic-orange"><span class="ico" data-icon="activity"></span></div></div><div class="v" id="globalRespCount">0</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Média de respostas / igreja</div><div class="ic ic-purple"><span class="ico" data-icon="bars"></span></div></div><div class="v">86</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Igrejas em risco (baixo uso)</div><div class="ic ic-orange"><span class="ico" data-icon="alert-triangle"></span></div></div><div class="v">2</div><div class="small-note">sem respostas há 14+ dias</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Inadimplência</div><div class="ic ic-purple"><span class="ico" data-icon="alert-circle"></span></div></div><div class="v" id="gDelinq">0</div><div class="small-note" id="gDelinqNote"></div></div>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <h3 style="margin:0 0 10px; font-size:15px;">Distribuição por plano</h3>
+        <div id="gPlans"></div>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="resp" id="gTable"></table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ================= ÍCONES ================= */
+const ICONS = {
+  home:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  'user-plus':'<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>',
+  repeat:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+  'check-circle':'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+  check:'<polyline points="20 6 9 17 4 12"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/>',
+  'alert-triangle':'<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  'alert-circle':'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+  activity:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+  dollar:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  'trending-up':'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+  'trending-down':'<polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/>',
+  bars:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+  layout:'<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>',
+  shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  shuffle:'<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>',
+  mail:'<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/>',
+  edit:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  copy:'<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  'arrow-up':'<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>',
+  'arrow-down':'<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>',
+  logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>'
+};
+function ic(name,size=16){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">${ICONS[name]||''}</svg>`;
+}
+function paintStaticIcons(){
+  document.querySelectorAll('[data-icon]').forEach(el=>{
+    if(!el.dataset.painted){ el.insertAdjacentHTML('afterbegin', ic(el.dataset.icon,16)); el.dataset.painted='1'; }
+  });
+}
+
+/* ================= ESTADO ================= */
+const STATUS_LABELS = {pendente:'Pendente', contatado:'Contatado', acompanhamento:'Em acompanhamento',
+  encaminhado:'Encaminhado', concluido:'Concluído', sem_interesse:'Sem interesse', nao_respondeu:'Não respondeu'};
+const RANK = {pendente:0, nao_respondeu:1, sem_interesse:1, contatado:2, acompanhamento:3, encaminhado:4, concluido:5};
+const NONE_RE = /^(n[ãa]o tenho interesse|nenhum)/i;
+const LEADER_TYPES = {ministerio:'Líder de ministério', celula:'Líder de célula', acompanhamento:'Líder de acompanhamento', outro:'Outro responsável'};
+const WEEKDAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+const DEFAULT_STATE = {
+  appearance:{ churchName:'Igreja Vida Nova', title:'Conte pra gente quem é você',
+    finalMessage:'Obrigado por visitar a Igreja Vida Nova. Em breve alguém da nossa equipe entra em contato.',
+    primary:'#FF7A29', bgColor:'#0D0B14', textColor:'#F5F3F7', logo:null },
+  questions:[
+    {id:'q1', type:'boolean', label:'É a sua primeira vez visitando nossa igreja?', required:true, options:[]},
+    {id:'q2', type:'single', label:'Você está procurando um lugar para congregar?', required:true, options:['Sim, estou procurando','Não, apenas visitando','Ainda não sei']},
+    {id:'q3', type:'short', label:'Qual o seu nome completo?', required:true, options:[]},
+    {id:'q4', type:'whatsapp', label:'WhatsApp para contato', required:true, options:[]},
+    {id:'q5', type:'age', label:'Qual a sua idade?', required:true, options:[]},
+    {id:'q6', type:'single', label:'Como você conheceu a igreja?', required:false, options:['Instagram','Google','Amigo/família','Evento','Indicação','Outro']},
+    {id:'q7', type:'multi', label:'Você tem interesse em algum ministério?', required:false, options:['Louvor','Intercessão','Juventude','Dança','Comunicação','Kids','Não tenho interesse no momento']},
+    {id:'q8', type:'cell', label:'Você gostaria de participar de uma célula?', required:false, options:[]},
+    {id:'q9', type:'boolean', label:'Gostaria de receber oração?', required:false, options:[]}
+  ],
+  responses:[], leaders:[], rules:[], cells:[], distSettings:{autoMinistry:true, autoCell:true},
+  churches:[
+    {id:'c1', name:'Igreja Vida Nova', email:'poundix1@gmail.com', plan:'Pro', valor:349, paid:true, resp:0, live:true, isNew:false, when:'Hoje'},
+    {id:'c2', name:'Comunidade Restauração', email:'', plan:'Essencial', valor:149, paid:true, resp:112, live:false, isNew:false, when:'Ontem'},
+    {id:'c3', name:'Igreja Videira Curitiba', email:'', plan:'Pro', valor:349, paid:true, resp:3, live:false, isNew:false, when:'16 dias atrás'},
+    {id:'c4', name:'Igreja Nova Aliança', email:'', plan:'Essencial', valor:149, paid:false, resp:0, live:false, isNew:false, when:'21 dias atrás'}
+  ]
+};
+let state;
+try{
+  const saved = localStorage.getItem('poundix_state_v4');
+  if(saved){ state = JSON.parse(saved); }
+  else{
+    const old = localStorage.getItem('poundix_state_v3');
+    state = old ? JSON.parse(old) : JSON.parse(JSON.stringify(DEFAULT_STATE));
+    if(old) delete state.questions;
+  }
+}catch(e){ state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
+state.appearance = Object.assign({}, DEFAULT_STATE.appearance, state.appearance||{});
+state.questions = state.questions && state.questions.length ? state.questions : JSON.parse(JSON.stringify(DEFAULT_STATE.questions));
+state.cells = state.cells || [];
+state.distSettings = Object.assign({autoMinistry:true, autoCell:true}, state.distSettings||{});
+state.churches = state.churches || JSON.parse(JSON.stringify(DEFAULT_STATE.churches));
+state.leaders = (state.leaders||[]).map(l=>{
+  const ms = l.ministries || (l.ministry?[l.ministry]:[]);
+  return {photo:null, role:'Líder', ageMin:'', ageMax:'', responsavel:'principal', status:'active', ...l, ministries:ms, type: l.type || (ms.length?'ministerio':'acompanhamento')};
+});
+state.rules = (state.rules||[]).map(r=> r.conds ? r : {id:r.id, conds:{ageMin:r.min, ageMax:r.max}, action:{kind:'lider', ref:r.leaderId}});
+function hashKey(str){ let h=5381; for(let i=0;i<str.length;i++) h=((h<<5)+h+str.charCodeAt(i))|0; return 'v'+(h>>>0).toString(16); }
+function keyOfAnswers(answers){
+  const q = state.questions.find(q=>q.type==='whatsapp'); if(!q) return null;
+  const d = String(answers[q.id]||'').replace(/\D/g,'').slice(-11);
+  return d.length>=8 ? hashKey(d) : null;
+}
+state.responses = (state.responses||[]).map(r=>{
+  const status = RANK[r.status]!==undefined ? r.status : (r.status==='retornou'?'concluido':'pendente');
+  const out = {...r, status, history: r.history || [{status:'pendente', at:r.date}], firstContactAt: r.firstContactAt||null, firstResponseAt: r.firstResponseAt||null};
+  out.visitorKey = r.visitorKey!==undefined ? r.visitorKey : keyOfAnswers(r.answers||{});
+  out.assignments = r.assignments || (r.leaderId ? [{id:'a'+r.id, kind:'acompanhamento', target:'Acompanhamento', leaderId:r.leaderId, cellId:null, status, history:[{status:'pendente', at:r.date}]}] : []);
+  delete out.leaderId;
+  return out;
+});
+function save(){ try{ localStorage.setItem('poundix_state_v4', JSON.stringify(state)); }catch(e){} }
+function uid(){ return 'id'+Math.random().toString(36).slice(2,9); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+/* ================= DRAFT (Editor do questionário) ================= */
+let draft = { questions: clone(state.questions), appearance: clone(state.appearance) };
+let hasUnsavedChanges = false;
+function markDirty(){ hasUnsavedChanges = true; document.getElementById('saveBar').classList.add('show'); }
+function saveDraft(){
+  state.questions = clone(draft.questions);
+  state.appearance = clone(draft.appearance);
+  save();
+  hasUnsavedChanges = false;
+  document.getElementById('saveBar').classList.remove('show');
+  renderAll();
+}
+function discardDraft(){
+  draft = { questions: clone(state.questions), appearance: clone(state.appearance) };
+  hasUnsavedChanges = false;
+  document.getElementById('saveBar').classList.remove('show');
+  renderBuilder(); loadAppearanceForm();
+}
+function confirmLeaveIfDirty(){
+  if(hasUnsavedChanges){ return confirm('Você tem alterações não salvas no questionário. Sair mesmo assim? As alterações serão perdidas.'); }
+  return true;
+}
+
+/* ================= NAV ================= */
+const switcherButtons = document.querySelectorAll('#switcher button');
+switcherButtons.forEach(b=>b.addEventListener('click', ()=>{
+  const leavingAdmin = document.getElementById('view-church').classList.contains('active') && document.getElementById('cp-admin').classList.contains('active');
+  if(leavingAdmin && b.dataset.view!=='church' && !confirmLeaveIfDirty()) return;
+  switchView(b.dataset.view);
+}));
+function switchView(name){
+  switcherButtons.forEach(x=>x.classList.toggle('active', x.dataset.view===name));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  renderAll();
+}
+function showChurchPanel(name){
+  const leavingAdmin = document.getElementById('cp-admin').classList.contains('active');
+  if(leavingAdmin && name!=='admin' && !confirmLeaveIfDirty()) return;
+  document.querySelectorAll('.chpanel').forEach(a=>a.classList.toggle('on', a.dataset.panel===name));
+  document.querySelectorAll('.chpanel-body').forEach(b=>b.classList.remove('active'));
+  document.getElementById('cp-'+name).classList.add('active');
+  renderAll();
+}
+function showAdminTab(name){
+  document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.toggle('on', b.dataset.tab===name));
+  document.querySelectorAll('.admin-sub').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+function showLeaderPanel(name){
+  document.querySelectorAll('.lpanel').forEach(a=>a.classList.toggle('on', a.dataset.panel===name));
+  document.querySelectorAll('.lpanel-body').forEach(b=>b.classList.remove('active'));
+  document.getElementById('lp-'+name).classList.add('active');
+}
+
+/* ================= PUBLIC FORM (usa state, não draft — só o que foi salvo) ================= */
+function questionControl(q){
+  if(['short','whatsapp','number','age','city','neighborhood'].includes(q.type)){
+    return `<input class="q-input" type="${q.type==='number'||q.type==='age'?'number':'text'}" placeholder="Digite aqui..." oninput="window.__answers['${q.id}']=this.value">`;
+  }
+  if(q.type==='long' || q.type==='prayer'){
+    return `<textarea class="q-textarea" placeholder="Escreva aqui..." oninput="window.__answers['${q.id}']=this.value"></textarea>`;
+  }
+  if(q.type==='boolean'){
+    return `<div class="inline-choices choice-2col"><button class="ichoice" onclick="pickAnswer(this,'${q.id}','Sim')">Sim</button><button class="ichoice" onclick="pickAnswer(this,'${q.id}','Não')">Não</button></div>`;
+  }
+  if(q.type==='single'){
+    return `<select class="q-select" onchange="window.__answers['${q.id}']=this.value"><option value="">Selecione</option>${(q.options||[]).map(o=>`<option value="${o}">${o}</option>`).join('')}</select>`;
+  }
+  if(q.type==='multi'){
+    return `<div class="inline-choices">${(q.options||[]).map((o,i)=>`<button class="ichoice" onclick="pickMulti(this,'${q.id}',${i})">${esc(o)}</button>`).join('')}</div>`;
+  }
+  if(q.type==='cell'){
+    return `<div class="inline-choices choice-2col"><button class="ichoice" onclick="pickCell(this,'${q.id}','Sim')">Sim</button><button class="ichoice" onclick="pickCell(this,'${q.id}','Não')">Não</button></div>
+      <div id="cellOpts" style="display:none; margin-top:20px;">${cellOptionsHtml(q)}</div>`;
+  }
+  return '';
+}
+function pickAnswer(el,qid,val){ el.parentElement.querySelectorAll('.ichoice').forEach(c=>c.classList.remove('picked')); el.classList.add('picked'); window.__answers[qid]=val; }
+function pickMulti(el,qid,idx){
+  const q = state.questions.find(q=>q.id===qid); const val = q.options[idx];
+  const wrap = el.parentElement;
+  window.__answers[qid] = window.__answers[qid] || [];
+  let arr = window.__answers[qid]; const i = arr.indexOf(val);
+  if(i>-1){ arr.splice(i,1); el.classList.remove('picked'); }
+  else{
+    if(NONE_RE.test(val)){ arr = window.__answers[qid] = [val]; wrap.querySelectorAll('.ichoice').forEach(b=>b.classList.remove('picked')); }
+    else{
+      arr = window.__answers[qid] = arr.filter(x=>!NONE_RE.test(x));
+      wrap.querySelectorAll('.ichoice').forEach(b=>{ if(NONE_RE.test(b.textContent.trim())) b.classList.remove('picked'); });
+      arr.push(val);
+    }
+    el.classList.add('picked');
+  }
+}
+function cellFitsAge(c, age){ return age==null || ((!c.ageMin || age>=Number(c.ageMin)) && (!c.ageMax || age<=Number(c.ageMax))); }
+function cellLabel(c){ return [c.name, c.day, c.time].filter(Boolean).join(' · '); }
+function cellOptionsHtml(q){
+  const ageQ = state.questions.find(x=>x.type==='age'); const a = ageQ ? Number(window.__answers[ageQ.id]) : NaN;
+  const cells = state.cells.filter(c=>c.status!=='inactive' && cellFitsAge(c, isNaN(a)?null:a));
+  if(!cells.length) return `<p class="q-step-count" style="margin:0;">Nossa equipe vai te ajudar a encontrar a célula mais próxima de você.</p>`;
+  return `<p class="q-step-count" style="margin:0 0 10px;">Se já tiver preferência, escolha uma célula (opcional):</p><div class="inline-choices">${cells.map(c=>`<button class="ichoice" data-cell="${c.id}" onclick="pickCellChoice(this,'${q.id}','${c.id}')">${esc(cellLabel(c))}</button>`).join('')}</div>`;
+}
+function pickCell(el,qid,val){
+  el.parentElement.querySelectorAll('.ichoice').forEach(c=>c.classList.remove('picked')); el.classList.add('picked');
+  window.__answers[qid]=val;
+  document.getElementById('cellOpts').style.display = val==='Sim' ? 'block' : 'none';
+  if(val!=='Sim') delete window.__answers[qid+'__cell'];
+}
+function pickCellChoice(el,qid,cid){
+  const was = el.classList.contains('picked');
+  document.querySelectorAll('#cellOpts .ichoice').forEach(c=>c.classList.remove('picked'));
+  if(was) delete window.__answers[qid+'__cell']; else { el.classList.add('picked'); window.__answers[qid+'__cell']=cid; }
+}
+function renderPublicForm(){
+  document.documentElement.style.setProperty('--btn-color', state.appearance.primary);
+  const formEl = document.getElementById('view-form');
+  formEl.style.setProperty('--pf-bg', state.appearance.bgColor);
+  formEl.style.setProperty('--pf-text', state.appearance.textColor);
+  document.getElementById('publicLogoBlock').innerHTML = `
+    ${state.appearance.logo ? `<img src="${state.appearance.logo}">` :
+      `<svg viewBox="0 0 100 100" fill="none"><path d="M30 20 L60 20 C72 20 80 30 80 42 C80 54 70 62 58 62 L44 62 L44 72 L30 88 L30 62 Z" fill="${state.appearance.primary}"/></svg>`}
+    <div style="text-align:center;"><div style="font-weight:700; font-size:17px;">${state.appearance.churchName}</div>
+    <div style="opacity:.65; font-size:13px;">${state.appearance.title}</div></div>`;
+  window.__answers = {};
+  window.__step = 0;
+  renderPublicStep();
+}
+function renderPublicStep(){
+  const total = state.questions.length;
+  const i = window.__step;
+  const q = state.questions[i];
+  const isLast = i === total-1;
+  document.getElementById('publicQuestions').innerHTML = `
+    <div class="q-progress"><div class="q-progress-bar" style="width:${Math.round((i/total)*100)}%; background:${state.appearance.primary}"></div></div>
+    <p class="q-step-count">Pergunta ${i+1} de ${total}</p>
+    <div class="q-block"><label class="q-label">${q.label} ${q.required?'<span class="req">*</span>':''}</label>${questionControl(q)}</div>
+    <div class="q-step-actions">
+      ${i>0 ? `<button class="btn btn-ghost" onclick="publicStepBack()">Voltar</button>` : '<span></span>'}
+      <button class="btn btn-primary" style="background:${state.appearance.primary}; color:#1a0d00;" onclick="publicStepNext()">${isLast?'Enviar respostas':'Próxima'}</button>
+    </div>`;
+  restorePublicStepValue(q);
+}
+function restorePublicStepValue(q){
+  const val = window.__answers[q.id];
+  if(val==null) return;
+  if(['short','whatsapp','number','age','city','neighborhood'].includes(q.type)){
+    const el = document.querySelector('.q-input'); if(el) el.value = val;
+  } else if(q.type==='long' || q.type==='prayer'){
+    const el = document.querySelector('.q-textarea'); if(el) el.value = val;
+  } else if(q.type==='boolean' || q.type==='multi'){
+    const arr = Array.isArray(val) ? val : [val];
+    document.querySelectorAll('.ichoice').forEach(b=>{ if(arr.includes(b.textContent.trim())) b.classList.add('picked'); });
+  } else if(q.type==='single'){
+    const el = document.querySelector('.q-select'); if(el) el.value = val;
+  } else if(q.type==='cell'){
+    document.querySelectorAll('.q-block > .inline-choices .ichoice').forEach(b=>{ if(b.textContent.trim()===val) b.classList.add('picked'); });
+    if(val==='Sim'){
+      document.getElementById('cellOpts').style.display='block';
+      const cid = window.__answers[q.id+'__cell'];
+      document.querySelectorAll('#cellOpts .ichoice').forEach(b=>{ if(b.dataset.cell===cid) b.classList.add('picked'); });
+    }
+  }
+}
+function publicStepBack(){ window.__step--; renderPublicStep(); }
+function publicStepNext(){
+  const q = state.questions[window.__step];
+  const val = window.__answers[q.id];
+  const empty = val==null || val==='' || (Array.isArray(val) && val.length===0);
+  if(q.required && empty){ alert('Essa pergunta é obrigatória.'); return; }
+  if(window.__step === state.questions.length-1){ submitForm(); return; }
+  window.__step++;
+  renderPublicStep();
+}
+/* ================= DADOS DO VISITANTE / DISTRIBUIÇÃO ================= */
+function interestQ(){ return state.questions.find(q=>q.type==='multi' && /interesse|minist[ée]rio/i.test(q.label)); }
+function cellQ(){ return state.questions.find(q=>q.type==='cell'); }
+function interestsOf(r){ const q=interestQ(); const v=q && r.answers[q.id]; return Array.isArray(v) ? v.filter(x=>!NONE_RE.test(x)) : []; }
+function wantsCell(r){ const q=cellQ(); return !!q && r.answers[q.id]==='Sim'; }
+function ageOf(r){ const q=state.questions.find(q=>q.type==='age'); const a=q?Number(r.answers[q.id]):NaN; return isNaN(a)?null:a; }
+function whatsOf(r){ const q=state.questions.find(q=>q.type==='whatsapp'); return (q && r.answers[q.id]) || ''; }
+function leaderById(id){ return state.leaders.find(l=>l.id===id); }
+function cellById(id){ return state.cells.find(c=>c.id===id); }
+function leaderFitsAge(l, age){ return age==null || ((!l.ageMin || age>=Number(l.ageMin)) && (!l.ageMax || age<=Number(l.ageMax))); }
+function pickMinistryLeader(name, age){
+  const cands = state.leaders.filter(l=>l.status!=='inactive' && (l.ministries||[]).some(m=>m && m.toLowerCase()===String(name).toLowerCase()));
+  return (cands.find(l=>leaderFitsAge(l,age)) || cands[0] || {}).id || null;
+}
+function ruleMatches(rule, r){
+  const c = rule.conds || {}; const ints = interestsOf(r).map(x=>x.toLowerCase()); const age = ageOf(r);
+  if(c.interest && !ints.includes(String(c.interest).toLowerCase())) return false;
+  if(c.ageMin!=='' && c.ageMin!=null && (age==null || age<Number(c.ageMin))) return false;
+  if(c.ageMax!=='' && c.ageMax!=null && (age==null || age>Number(c.ageMax))) return false;
+  if(c.cell==='sim' && !wantsCell(r)) return false;
+  if(c.qid){ const v=r.answers[c.qid]; const arr=Array.isArray(v)?v:[v]; if(!arr.some(x=>String(x)===c.qval)) return false; }
+  return true;
+}
+function resolveAction(rule, r){
+  const a = rule.action || {}; const age = ageOf(r);
+  if(a.kind==='ministerio') return {kind:'ministerio', target:a.ref, leaderId:pickMinistryLeader(a.ref, age), cellId:null};
+  if(a.kind==='lider' || a.kind==='responsavel'){
+    const l = leaderById(a.ref); if(!l) return null;
+    return {kind: a.kind==='lider' && rule.conds.interest ? 'ministerio' : 'acompanhamento', target: rule.conds.interest || 'Acompanhamento', leaderId:l.id, cellId:null};
+  }
+  if(a.kind==='celula'){ const c = cellById(a.ref); if(!c) return null; return {kind:'celula', target:'Célula: '+c.name, leaderId:(c.leaderIds||[]).find(id=>leaderById(id))||null, cellId:c.id}; }
+  return null;
+}
+function computeAssignments(r){
+  const out = []; const age = ageOf(r); const at = r.date;
+  const add = (a)=>{ if(!out.some(o=>o.kind===a.kind && o.target===a.target && o.leaderId===a.leaderId && o.cellId===a.cellId)) out.push({id:uid(), status:'pendente', history:[{status:'pendente', at}], ...a}); };
+  if(state.distSettings.autoMinistry) interestsOf(r).forEach(m=>add({kind:'ministerio', target:m, leaderId:pickMinistryLeader(m, age), cellId:null}));
+  if(state.distSettings.autoCell && wantsCell(r)){
+    const cq = cellQ(); const c = cellById(r.answers[cq.id+'__cell']);
+    const fallback = (state.leaders.find(l=>l.status!=='inactive' && l.type==='celula' && leaderFitsAge(l,age))||{}).id || null;
+    add({kind:'celula', target: c ? 'Célula: '+c.name : 'Célula', leaderId: c ? ((c.leaderIds||[]).find(id=>leaderById(id))||null) : fallback, cellId: c ? c.id : null});
+  }
+  state.rules.forEach(rule=>{ if(ruleMatches(rule, r)){ const a = resolveAction(rule, r); if(a) add(a); } });
+  return out;
+}
+function overallStatus(r){
+  const as = r.assignments||[]; if(!as.length) return r.status;
+  return as.reduce((best,a)=> (RANK[a.status]||0) > (RANK[best]||0) ? a.status : best, 'pendente');
+}
+function stampStatus(r, status){
+  const at = new Date().toISOString();
+  r.history = r.history || []; r.history.push({status, at});
+  if(status!=='pendente' && !r.firstContactAt) r.firstContactAt = at;
+  if(['acompanhamento','encaminhado','concluido'].includes(status) && !r.firstResponseAt) r.firstResponseAt = at;
+  return at;
+}
+function setAssignmentStatus(rid, aid, status){
+  const r = state.responses.find(r=>r.id===rid); const a = r && r.assignments.find(a=>a.id===aid); if(!a) return;
+  const at = stampStatus(r, status); a.status = status; a.history.push({status, at}); r.status = overallStatus(r);
+  save(); renderAll();
+}
+function setAssignmentLeader(rid, aid, lid){
+  const r = state.responses.find(r=>r.id===rid); const a = r && r.assignments.find(a=>a.id===aid); if(!a || !lid) return;
+  a.leaderId = lid; a.history.push({status:a.status, at:new Date().toISOString()}); save(); renderAll();
+}
+function setAssignmentCell(rid, aid, cid){
+  const r = state.responses.find(r=>r.id===rid); const a = r && r.assignments.find(a=>a.id===aid); if(!a) return;
+  const c = cellById(cid); a.cellId = c ? c.id : null; a.target = c ? 'Célula: '+c.name : 'Célula';
+  if(c){ const lid = (c.leaderIds||[]).find(id=>leaderById(id)); if(lid) a.leaderId = lid; }
+  save(); renderAll();
+}
+function reapplyRules(){
+  let n = 0;
+  state.responses.forEach(r=>{
+    if(!(r.assignments||[]).some(a=>a.leaderId)){ const next = computeAssignments(r); if(next.length){ r.assignments = next; n++; } }
+  });
+  save(); renderAll(); alert(n ? n+' visitante(s) receberam responsável.' : 'Nenhum visitante sem responsável pôde ser atribuído com as regras atuais.');
+}
+function submitForm(){
+  const missing = state.questions.filter(q=>q.required && !window.__answers[q.id]);
+  if(missing.length){ alert('Preencha: '+missing.map(q=>q.label).join(', ')); return; }
+  const answers = {...window.__answers};
+  const now = new Date().toISOString();
+  const resp = { id:Date.now(), date:now, answers, status:'pendente', history:[{status:'pendente', at:now}], firstContactAt:null, firstResponseAt:null, visitorKey:keyOfAnswers(answers), assignments:[] };
+  resp.assignments = computeAssignments(resp);
+  state.responses.push(resp);
+  save();
+  document.getElementById('publicQuestions').innerHTML = `
+    <div style="text-align:center; padding:60px 10px;">
+      <div style="width:56px;height:56px;border-radius:50%;background:${state.appearance.primary};display:flex;align-items:center;justify-content:center;margin:0 auto 20px; color:#1a0d00;">${ic('check',26)}</div>
+      <h2 style="font-size:22px; margin:0 0 8px;">Respostas enviadas!</h2>
+      <p style="color:var(--muted); font-size:14px; margin:0 0 26px;">${state.appearance.finalMessage}</p>
+      <button class="btn btn-ghost" onclick="renderPublicForm()">Responder novamente</button>
+    </div>`;
+  renderBuilder(); loadAppearanceForm(); renderLeaders(); renderCells(); renderDistribution(); renderDashboard(); renderVisitors(); renderLeaderArea(); paintStaticIcons();
+}
+
+/* ================= BUILDER (opera sobre draft, precisa Salvar) ================= */
+const TYPE_LABELS = {short:'Texto curto', long:'Texto longo', whatsapp:'WhatsApp', number:'Número',
+  single:'Seleção única', multi:'Múltipla seleção', boolean:'Sim/Não', age:'Idade', city:'Cidade',
+  neighborhood:'Bairro', prayer:'Pedido de oração', cell:'Interesse em célula (Sim/Não)'};
+function addQuestion(){ draft.questions.push({id:uid(), type:'short', label:'Nova pergunta', required:false, options:[]}); markDirty(); renderBuilder(); }
+function updateQuestion(id, field, value){ const q=draft.questions.find(q=>q.id===id); if(!q)return; q[field]=value; markDirty(); renderBuilder(); }
+function updateOptions(id, raw){ const q=draft.questions.find(q=>q.id===id); if(!q)return; q.options=raw.split(';').map(s=>s.trim()).filter(Boolean); markDirty(); renderBuilder(); }
+function duplicateQuestion(id){ const idx=draft.questions.findIndex(q=>q.id===id); const copy={...draft.questions[idx], id:uid()}; draft.questions.splice(idx+1,0,copy); markDirty(); renderBuilder(); }
+function deleteQuestion(id){ draft.questions=draft.questions.filter(q=>q.id!==id); markDirty(); renderBuilder(); }
+function moveQuestion(id, dir){ const idx=draft.questions.findIndex(q=>q.id===id); const s=idx+dir; if(s<0||s>=draft.questions.length)return;
+  [draft.questions[idx], draft.questions[s]]=[draft.questions[s], draft.questions[idx]]; markDirty(); renderBuilder(); }
+function renderBuilder(){
+  document.getElementById('builderList').innerHTML = draft.questions.map((q,i)=>`
+    <div class="q-item">
+      <div class="q-item-head">
+        <span class="q-num">${i+1}</span>
+        <input type="text" value="${q.label.replace(/"/g,'&quot;')}" onchange="updateQuestion('${q.id}','label',this.value)">
+      </div>
+      <div class="q-item-row2" style="margin-bottom:${(q.type==='single'||q.type==='multi')?'8px':'12px'};">
+        <label style="color:var(--muted); font-size:12px;">Tipo de resposta</label>
+        <select onchange="updateQuestion('${q.id}','type',this.value)">
+          ${Object.entries(TYPE_LABELS).map(([k,v])=>`<option value="${k}" ${q.type===k?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      ${(q.type==='single'||q.type==='multi') ? `<div><label style="color:var(--muted); font-size:12px; display:block; margin-bottom:4px;">Opções de resposta (separadas por ;)</label><input class="opt-input" type="text" placeholder="Ex.: Sim; Não; Talvez" value="${(q.options||[]).join('; ')}" onchange="updateOptions('${q.id}', this.value)"></div>` : ''}
+      <div class="q-item-footer">
+        <label class="req-toggle" onclick="updateQuestion('${q.id}','required',${!q.required})">
+          <span class="toggle ${q.required?'on':''}"><i></i></span> Obrigatória
+        </label>
+        <div class="q-actions">
+          <div class="icon-btn" title="Mover para cima" onclick="moveQuestion('${q.id}',-1)">${ic('arrow-up',14)}</div>
+          <div class="icon-btn" title="Mover para baixo" onclick="moveQuestion('${q.id}',1)">${ic('arrow-down',14)}</div>
+          <div class="icon-btn" title="Duplicar" onclick="duplicateQuestion('${q.id}')">${ic('copy',14)}</div>
+          <div class="icon-btn" title="Excluir" onclick="deleteQuestion('${q.id}')">${ic('x',14)}</div>
+        </div>
+      </div>
+    </div>`).join('');
+  document.getElementById('builderPreview').innerHTML = `<div style="font-weight:700; font-size:14px; margin-bottom:14px;">${draft.appearance.churchName}</div>` +
+    draft.questions.slice(0,3).map(q=>`<div style="margin-bottom:16px;"><div style="font-size:13px; font-weight:600; margin-bottom:8px;">${q.label}</div>${questionControl(q)}</div>`).join('') +
+    (draft.questions.length>3 ? `<p style="color:var(--muted); font-size:11.5px;">+ ${draft.questions.length-3} pergunta(s) abaixo</p>` : '');
+}
+
+/* ================= APARÊNCIA (draft) ================= */
+function loadAppearanceForm(){
+  document.getElementById('apChurchName').value = draft.appearance.churchName;
+  document.getElementById('apTitle').value = draft.appearance.title;
+  document.getElementById('apFinal').value = draft.appearance.finalMessage;
+  document.getElementById('apPrimary').value = draft.appearance.primary;
+  document.getElementById('apBg').value = draft.appearance.bgColor;
+  document.getElementById('apText').value = draft.appearance.textColor;
+  document.getElementById('apLogoPreview').src = draft.appearance.logo || '';
+  document.getElementById('apLogoPreview').style.opacity = draft.appearance.logo ? 1 : 0.3;
+  document.getElementById('stChurchNameDisplay').textContent = state.appearance.churchName;
+}
+function updateDraftAppearance(){
+  draft.appearance.churchName = document.getElementById('apChurchName').value;
+  draft.appearance.title = document.getElementById('apTitle').value;
+  draft.appearance.finalMessage = document.getElementById('apFinal').value;
+  draft.appearance.primary = document.getElementById('apPrimary').value;
+  draft.appearance.bgColor = document.getElementById('apBg').value;
+  draft.appearance.textColor = document.getElementById('apText').value;
+  markDirty();
+}
+function handleLogoUpload(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{ draft.appearance.logo = reader.result; markDirty(); loadAppearanceForm(); };
+  reader.readAsDataURL(file);
+}
+
+/* ================= LÍDERES ================= */
+let newLeaderPhoto = null;
+function handleLeaderPhoto(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{ newLeaderPhoto = reader.result; document.getElementById('ldPhotoPreview').src = reader.result; };
+  reader.readAsDataURL(file);
+}
+function addLeader(){
+  const name = document.getElementById('ldName').value.trim();
+  if(!name){ alert('Digite o nome do líder'); return; }
+  state.leaders.push({
+    id:uid(), name, photo:newLeaderPhoto,
+    email:document.getElementById('ldEmail').value, whatsapp:document.getElementById('ldWhats').value,
+    ministries:document.getElementById('ldMinistry').value.split(';').map(s=>s.trim()).filter(Boolean),
+    role:document.getElementById('ldRole').value || 'Líder', type:document.getElementById('ldType').value,
+    ageMin:document.getElementById('ldAgeMin').value, ageMax:document.getElementById('ldAgeMax').value,
+    responsavel:document.getElementById('ldResp').value, status:'active'
+  });
+  ['ldName','ldEmail','ldWhats','ldMinistry','ldRole','ldAgeMin','ldAgeMax'].forEach(i=>document.getElementById(i).value='');
+  newLeaderPhoto = null; document.getElementById('ldPhotoPreview').src='';
+  save(); renderAll();
+}
+function removeLeader(id){
+  state.leaders = state.leaders.filter(l=>l.id!==id);
+  state.rules = state.rules.filter(r=>!(['lider','responsavel'].includes(r.action.kind) && r.action.ref===id));
+  state.cells.forEach(c=>{ c.leaderIds = (c.leaderIds||[]).filter(x=>x!==id); });
+  state.responses.forEach(r=>r.assignments.forEach(a=>{ if(a.leaderId===id) a.leaderId = null; }));
+  save(); renderAll();
+}
+function leaderAvatar(l, size=36){
+  return l.photo ? `<img class="leader-avatar" style="width:${size}px;height:${size}px;" src="${l.photo}">`
+    : `<span class="leader-avatar" style="width:${size}px;height:${size}px;">${ic('users',Math.round(size*0.5))}</span>`;
+}
+function cellsOfLeader(id){ return state.cells.filter(c=>(c.leaderIds||[]).includes(id)); }
+function renderLeaders(){
+  const wrap = document.getElementById('leadersList');
+  wrap.innerHTML = state.leaders.length ? state.leaders.map(l=>`
+    <div class="leader-row">${leaderAvatar(l)}
+      <div style="flex:1;"><div class="nm">${esc(l.name)} <span style="color:var(--muted); font-weight:400; font-size:11.5px;">${esc(LEADER_TYPES[l.type]||l.role||'')}</span></div>
+      <div class="mn">${(l.ministries||[]).length?esc(l.ministries.join(', ')):'sem ministério'}${cellsOfLeader(l.id).length?' · células: '+esc(cellsOfLeader(l.id).map(c=>c.name).join(', ')):''}${(l.ageMin||l.ageMax)?` · ${l.ageMin||'0'}–${l.ageMax||'∞'} anos`:''} · ${l.responsavel==='secundario'?'secundário':'principal'}</div></div>
+    <div class="icon-btn" onclick="removeLeader('${l.id}')">${ic('x',14)}</div></div>`).join('') : `<div class="empty">Nenhum líder cadastrado ainda.</div>`;
+}
+
+/* ================= CÉLULAS ================= */
+let newCellLeaders = [];
+function renderCellLeaderChips(){
+  const el = document.getElementById('cLeaders');
+  el.innerHTML = state.leaders.length ? state.leaders.map(l=>`<button class="ichoice ${newCellLeaders.includes(l.id)?'picked':''}" onclick="toggleCellLeader('${l.id}')">${esc(l.name)}</button>`).join('') : `<div class="empty" style="padding:0;">Cadastre líderes primeiro.</div>`;
+}
+function toggleCellLeader(id){ const i=newCellLeaders.indexOf(id); if(i>-1) newCellLeaders.splice(i,1); else newCellLeaders.push(id); renderCellLeaderChips(); }
+function addCell(){
+  const name = document.getElementById('cName').value.trim();
+  if(!name){ alert('Digite o nome da célula'); return; }
+  state.cells.push({id:uid(), name, leaderIds:[...newCellLeaders], day:document.getElementById('cDay').value, time:document.getElementById('cTime').value,
+    region:document.getElementById('cRegion').value.trim(), ageMin:document.getElementById('cAgeMin').value, ageMax:document.getElementById('cAgeMax').value, status:document.getElementById('cStatus').value});
+  ['cName','cDay','cTime','cRegion','cAgeMin','cAgeMax'].forEach(i=>document.getElementById(i).value=''); newCellLeaders = [];
+  save(); renderAll();
+}
+function toggleCellStatus(id){ const c=cellById(id); if(c){ c.status = c.status==='inactive'?'active':'inactive'; save(); renderAll(); } }
+function removeCell(id){
+  state.cells = state.cells.filter(c=>c.id!==id);
+  state.rules = state.rules.filter(r=>!(r.action.kind==='celula' && r.action.ref===id));
+  state.responses.forEach(r=>r.assignments.forEach(a=>{ if(a.cellId===id){ a.cellId=null; a.target='Célula'; } }));
+  save(); renderAll();
+}
+function renderCells(){
+  renderCellLeaderChips();
+  const wrap = document.getElementById('cellsList');
+  wrap.innerHTML = state.cells.length ? state.cells.map(c=>{
+    const ls = (c.leaderIds||[]).map(id=>leaderById(id)).filter(Boolean).map(l=>l.name);
+    const meta = [c.day, c.time, c.region, (c.ageMin||c.ageMax)?`${c.ageMin||'0'}–${c.ageMax||'∞'} anos`:'', ls.length?'líder(es): '+ls.join(', '):'sem líder'].filter(Boolean).map(esc).join(' · ');
+    return `<div class="leader-row"><div style="flex:1;"><div class="nm">${esc(c.name)} <span class="tag ${c.status==='inactive'?'purple':'orange'}">${c.status==='inactive'?'Inativa':'Ativa'}</span></div><div class="mn">${meta}</div></div>
+      <button class="btn btn-ghost" style="padding:6px 10px; font-size:12.5px;" onclick="toggleCellStatus('${c.id}')">${c.status==='inactive'?'Ativar':'Desativar'}</button>
+      <div class="icon-btn" onclick="removeCell('${c.id}')">${ic('x',14)}</div></div>`;
+  }).join('') : `<div class="empty">Nenhuma célula cadastrada ainda.</div>`;
+}
+
+/* ================= DISTRIBUIÇÃO ================= */
+function setSelectOptions(id, html){
+  const el = document.getElementById(id); if(!el) return; const prev = el.value; el.innerHTML = html;
+  if([...el.options].some(o=>o.value===prev)) el.value = prev;
+}
+function ministryNames(){
+  const q = interestQ(); const set = new Set();
+  (q?q.options:[]).filter(o=>!NONE_RE.test(o)).forEach(o=>set.add(o));
+  state.leaders.forEach(l=>(l.ministries||[]).forEach(m=>m && set.add(m)));
+  return [...set];
+}
+function fillRuleValues(){
+  const qid = document.getElementById('ruleQ').value; const q = state.questions.find(q=>q.id===qid);
+  const opts = !q ? [] : (q.type==='boolean'||q.type==='cell') ? ['Sim','Não'] : (q.options||[]);
+  setSelectOptions('ruleQVal', opts.length ? opts.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('') : `<option value="">—</option>`);
+  document.getElementById('ruleQVal').style.display = q ? '' : 'none';
+}
+function fillRuleTarget(){
+  const kind = document.getElementById('ruleKind').value; let html = '';
+  if(kind==='ministerio') html = ministryNames().map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  else if(kind==='lider') html = state.leaders.map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join('');
+  else if(kind==='celula') html = state.cells.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  else html = state.leaders.filter(l=>['acompanhamento','outro'].includes(l.type)).map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join('');
+  setSelectOptions('ruleTarget', html || `<option value="">Nada cadastrado para esta opção</option>`);
+}
+function fillRuleForm(){
+  const q = interestQ();
+  setSelectOptions('ruleInterest', `<option value="">Interesse: qualquer</option>` + (q?q.options:[]).filter(o=>!NONE_RE.test(o)).map(o=>`<option value="${esc(o)}">Interesse = ${esc(o)}</option>`).join(''));
+  setSelectOptions('ruleQ', `<option value="">Resposta específica: nenhuma</option>` + state.questions.filter(x=>['single','multi','boolean','cell'].includes(x.type)).map(x=>`<option value="${x.id}">Resposta: ${esc(x.label)}</option>`).join(''));
+  fillRuleValues(); fillRuleTarget();
+}
+function toggleDist(key){ state.distSettings[key] = !state.distSettings[key]; save(); renderAll(); }
+function addRule(){
+  const v = id=>document.getElementById(id).value;
+  const conds = {interest:v('ruleInterest'), ageMin:v('ruleMin'), ageMax:v('ruleMax'), cell:v('ruleCell'), qid:v('ruleQ'), qval:v('ruleQ')?v('ruleQVal'):''};
+  if(!(conds.interest || conds.ageMin || conds.ageMax || conds.cell || conds.qid)){ alert('Defina pelo menos uma condição.'); return; }
+  const kind = v('ruleKind'), ref = v('ruleTarget');
+  if(!ref){ alert('Escolha o destino da atribuição (cadastre líderes, ministérios ou células antes).'); return; }
+  state.rules.push({id:uid(), conds, action:{kind, ref}});
+  document.getElementById('ruleMin').value=''; document.getElementById('ruleMax').value='';
+  save(); renderAll();
+}
+function removeRule(id){ state.rules = state.rules.filter(r=>r.id!==id); save(); renderAll(); }
+function describeRule(rule){
+  const c = rule.conds||{}; const parts = [];
+  if(c.interest) parts.push(`Interesse = ${esc(c.interest)}`);
+  if(c.ageMin||c.ageMax) parts.push(`idade ${c.ageMin||'0'}–${c.ageMax||'∞'}`);
+  if(c.cell==='sim') parts.push('interesse em célula = Sim');
+  if(c.qid){ const q = state.questions.find(q=>q.id===c.qid); parts.push(`${esc(q?q.label:'pergunta removida')} = ${esc(c.qval)}`); }
+  const a = rule.action||{}; let dest = '—';
+  if(a.kind==='ministerio') dest = `ministério ${esc(a.ref)}`;
+  else if(a.kind==='celula'){ const cl = cellById(a.ref); dest = `célula ${cl?esc(cl.name):'removida'}`; }
+  else { const l = leaderById(a.ref); dest = `${a.kind==='lider'?'líder':'responsável'} ${l?esc(l.name):'removido'}`; }
+  return `SE ${parts.join(' E ')} → atribuir a <b>${dest}</b>`;
+}
+function renderDistribution(){
+  document.getElementById('tgMin').classList.toggle('on', !!state.distSettings.autoMinistry);
+  document.getElementById('tgCell').classList.toggle('on', !!state.distSettings.autoCell);
+  fillRuleForm();
+  document.getElementById('rulesList').innerHTML = state.rules.length ? state.rules.map(r=>`<div class="rule-row"><span>${describeRule(r)}</span><div class="icon-btn" onclick="removeRule('${r.id}')">${ic('x',14)}</div></div>`).join('') : `<div class="empty">Nenhuma regra personalizada. As regras automáticas acima continuam valendo.</div>`;
+  const all = []; state.responses.forEach(r=>(r.assignments||[]).forEach(a=>all.push(a)));
+  const distStats = document.getElementById('distStats');
+  distStats.innerHTML = (state.leaders.length ? state.leaders.map(l=>`<div class="legend-item"><span>${esc(l.name)} <span style="color:var(--muted); font-size:12px;">(${esc(LEADER_TYPES[l.type]||'')})</span></span><strong>${all.filter(a=>a.leaderId===l.id).length}</strong></div>`).join('') : '') +
+    `<div class="legend-item"><span>Sem responsável</span><strong>${all.filter(a=>!a.leaderId).length}</strong></div>`;
+  const cellRows = state.cells.map(c=>`<div class="legend-item"><span>${esc(c.name)}</span><strong>${all.filter(a=>a.cellId===c.id).length}</strong></div>`).join('');
+  document.getElementById('distCells').innerHTML = cellRows + `<div class="legend-item"><span>Célula a definir</span><strong>${all.filter(a=>a.kind==='celula' && !a.cellId).length}</strong></div>`;
+}
+
+/* ================= DASHBOARD / VISITANTES / INSIGHTS ================= */
+let currentPeriodDays = 30;
+function setPeriod(days){
+  currentPeriodDays = days;
+  document.querySelectorAll('#periodFilters button').forEach(b=>b.classList.toggle('on', Number(b.dataset.days)===days));
+  renderAll();
+}
+function inPeriod(resp, days, offsetDays=0){
+  if(days===0) return offsetDays===0;
+  const ageMs = Date.now() - new Date(resp.date).getTime() - offsetDays*86400000;
+  return ageMs>=0 && ageMs <= days*86400000;
+}
+function nameOf(resp){ const q = state.questions.find(q=>q.type==='short'); return (q && resp.answers[q.id]) || 'Visitante'; }
+function brl(n){ return 'R$ '+Number(n||0).toLocaleString('pt-BR'); }
+function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function updateGlobalRefs(total){
+  document.getElementById('sideName').textContent = state.appearance.churchName;
+  renderGlobal(total);
+}
+function renderGlobal(total){
+  if(!state.churches) state.churches = JSON.parse(JSON.stringify(DEFAULT_STATE.churches));
+  const cs = state.churches;
+  const live = cs.find(c=>c.live); if(live){ live.name = state.appearance.churchName; live.resp = total; }
+  const netResp = cs.reduce((a,c)=>a+(Number(c.resp)||0),0);
+  const paid = cs.filter(c=>c.paid), unpaid = cs.filter(c=>!c.paid);
+  const mrrPaid = paid.reduce((a,c)=>a+Number(c.valor||0),0);
+  const mrrOpen = unpaid.reduce((a,c)=>a+Number(c.valor||0),0);
+  document.getElementById('gMrr').textContent = brl(mrrPaid);
+  document.getElementById('gMrrNote').textContent = mrrOpen ? brl(mrrOpen)+' em aberto' : 'tudo em dia';
+  document.getElementById('gActive').textContent = cs.length;
+  document.getElementById('gNew').textContent = cs.filter(c=>c.isNew).length;
+  document.getElementById('gDelinq').textContent = unpaid.length;
+  document.getElementById('gDelinqNote').textContent = unpaid.length ? 'não pagaram' : '';
+  document.getElementById('globalRespCount').textContent = netResp;
+  const plans = {}; cs.forEach(c=>{ const k=c.plan||'Sem plano'; plans[k]=(plans[k]||0)+1; });
+  document.getElementById('gPlans').innerHTML = Object.keys(plans).map((k,i)=>`<div class="legend-item"><span><i class="dotc" style="background:var(${i%2?'--purple':'--orange'})"></i>${esc(k)}</span><strong>${plans[k]} ${plans[k]===1?'igreja':'igrejas'}</strong></div>`).join('');
+  document.getElementById('gTable').innerHTML = '<tr><th>Igreja</th><th>Plano</th><th>Status</th><th>Respostas</th><th>Valor mensal</th><th>Pagamento</th><th></th></tr>' + cs.map(c=>`
+    <tr><td>${esc(c.name)}${c.email?`<div style="font-size:11.5px; color:var(--muted)">${esc(c.email)}</div>`:''}</td>
+    <td>${c.plan?`<span class="tag orange">${esc(c.plan)}</span>`:'—'}</td>
+    <td><span class="dotc" style="background:${c.paid?'var(--success)':'#5a5468'}"></span>${c.paid?'Ativa':'Inadimplente'}</td>
+    <td>${Number(c.resp)||0}</td>
+    <td>${brl(c.valor)}</td>
+    <td><button class="btn ${c.paid?'btn-ghost':'btn-primary'}" style="padding:6px 12px; font-size:12.5px;" onclick="togglePaid('${c.id}')">${c.paid?'Pago':'Não pago'}</button></td>
+    <td>${c.live?'':`<button class="btn btn-ghost" style="padding:6px 10px; font-size:12.5px;" onclick="removeChurch('${c.id}')">Remover</button>`}</td></tr>`).join('');
+}
+function toggleChurchForm(){ const f=document.getElementById('churchForm'); f.style.display = f.style.display==='none'?'block':'none'; }
+function addChurch(){
+  const name=document.getElementById('ncName').value.trim(), email=document.getElementById('ncEmail').value.trim(), valor=document.getElementById('ncValor').value, plan=document.getElementById('ncPlano').value.trim();
+  if(!name||!email||valor===''){ alert('Preencha nome, e-mail e valor cobrado.'); return; }
+  state.churches.push({id:'c'+Date.now(), name, email, plan, valor:Number(valor), paid:false, resp:0, live:false, isNew:true, when:'Hoje'});
+  ['ncName','ncEmail','ncValor','ncPlano'].forEach(i=>document.getElementById(i).value='');
+  toggleChurchForm(); save(); renderGlobal(state.responses.length);
+}
+function togglePaid(id){ const c=state.churches.find(c=>c.id===id); if(c){ c.paid=!c.paid; save(); renderGlobal(state.responses.length); } }
+function removeChurch(id){ if(!confirm('Remover esta igreja?')) return; state.churches=state.churches.filter(c=>c.id!==id); save(); renderGlobal(state.responses.length); }
+function pct(part, whole){ return whole ? Math.round((part/whole)*100) : 0; }
+function fmtDur(ms){
+  if(ms==null) return '—';
+  const m = ms/60000; if(m<60) return Math.max(1,Math.round(m))+' min';
+  const h = m/60; if(h<48) return (Math.round(h*10)/10)+' h';
+  return (Math.round(h/24*10)/10)+' d';
+}
+function avg(a){ return a.length ? a.reduce((x,y)=>x+y,0)/a.length : null; }
+function everStatus(r, st){
+  return r.status===st || (r.history||[]).some(h=>h.status===st) || (r.assignments||[]).some(a=>a.status===st || (a.history||[]).some(h=>h.status===st));
+}
+function maxRank(r){
+  let m = RANK[r.status]||0;
+  (r.history||[]).forEach(h=>{ m = Math.max(m, RANK[h.status]||0); });
+  (r.assignments||[]).forEach(a=>{ m = Math.max(m, RANK[a.status]||0); (a.history||[]).forEach(h=>{ m = Math.max(m, RANK[h.status]||0); }); });
+  return m;
+}
+function returnMap(){
+  const sorted = [...state.responses].sort((a,b)=>new Date(a.date)-new Date(b.date)); const last = {}; const info = {};
+  sorted.forEach(r=>{
+    info[r.id] = {isReturn:false, gap:null, returnedLater:false};
+    if(!r.visitorKey) return;
+    const prev = last[r.visitorKey];
+    if(prev){ info[r.id].isReturn = true; info[r.id].gap = (new Date(r.date)-new Date(prev.date))/86400000; info[prev.id].returnedLater = true; }
+    last[r.visitorKey] = r;
+  });
+  return info;
+}
+function lg(label, val){ return `<div class="legend-item"><span>${label}</span><strong>${val}</strong></div>`; }
+function topEntries(obj){ return Object.entries(obj).sort((a,b)=>b[1]-a[1]); }
+function statCard(label, val, icon, tone){ return `<div class="card stat"><div class="stat-top"><div class="k">${label}</div><div class="ic ic-${tone}">${ic(icon)}</div></div><div class="v" style="font-size:24px;">${val}</div></div>`; }
+const BRACKETS = [[0,12,'0–12'],[13,17,'13–17'],[18,25,'18–25'],[26,40,'26–40'],[41,200,'41+']];
+
+function renderDashboard(){
+  updateGlobalRefs(state.responses.length);
+  const days = currentPeriodDays;
+  const filtered = state.responses.filter(r=>inPeriod(r, days, 0));
+  const previous = days>0 ? state.responses.filter(r=>inPeriod(r, days, days)) : [];
+  const total = filtered.length;
+  const rmap = returnMap();
+  const firstQ = state.questions.find(q=>q.type==='boolean' && /primeira/i.test(q.label));
+  const primeira = firstQ ? filtered.filter(r=>r.answers[firstQ.id]==='Sim').length : total;
+  const pendentes = filtered.filter(r=>r.status==='pendente').length;
+  const acompanhamento = filtered.filter(r=>r.status==='acompanhamento').length;
+  const concluido = filtered.filter(r=>r.status==='concluido').length;
+  const prayerQ = state.questions.find(q=>q.type==='prayer' || /oração/i.test(q.label));
+  const prayer = prayerQ ? filtered.filter(r=>r.answers[prayerQ.id]==='Sim' || (r.answers[prayerQ.id] && r.answers[prayerQ.id]!=='Não')).length : 0;
+  const taxa = pct(total-pendentes, total);
+  const recorrentes = filtered.filter(r=>rmap[r.id] && rmap[r.id].isReturn);
+  const taxaRetorno = pct(recorrentes.length, total);
+
+  document.getElementById('dashStats').innerHTML = `
+    <div class="card stat"><div class="stat-top"><div class="k">Total de visitantes</div><div class="ic ic-orange">${ic('users')}</div></div><div class="v">${total}</div></div>
+    <div class="card stat"><div class="stat-top"><div class="k">Primeira visita</div><div class="ic ic-purple">${ic('user-plus')}</div></div><div class="v">${primeira}</div></div>
+    <div class="card stat"><div class="stat-top"><div class="k">Taxa de primeiro contato</div><div class="ic ic-orange">${ic('check-circle')}</div></div><div class="v">${taxa}%</div></div>
+    <div class="card stat"><div class="stat-top"><div class="k">Taxa de retorno</div><div class="ic ic-purple">${ic('trending-up')}</div></div><div class="v">${taxaRetorno}%</div></div>
+    <div class="card stat"><div class="stat-top"><div class="k">Pedidos de oração</div><div class="ic ic-orange">${ic('heart')}</div></div><div class="v">${prayer}</div></div>
+    <div class="card stat"><div class="stat-top"><div class="k">Pendentes de contato</div><div class="ic ic-purple">${ic('clock')}</div></div><div class="v">${pendentes}</div></div>
+    <div class="card stat"><div class="stat-top"><div class="k">Em acompanhamento</div><div class="ic ic-orange">${ic('repeat')}</div></div><div class="v">${acompanhamento}</div></div>
+    <div class="card stat"><div class="stat-top"><div class="k">Concluídos</div><div class="ic ic-purple">${ic('check-circle')}</div></div><div class="v">${concluido}</div></div>`;
+
+  /* evolução ao longo do tempo (dados reais por intervalo) */
+  const line = document.getElementById('dashLine');
+  if(total>0){
+    const end = Date.now(); const first = Math.min(...filtered.map(r=>new Date(r.date).getTime()));
+    const start = days>0 ? end-days*86400000 : Math.min(first, end-7*86400000);
+    const nb = Math.max(2, Math.min(days>0 ? days : Math.ceil((end-start)/86400000), 60)); const size = (end-start)/nb;
+    const buckets = Array(nb).fill(0);
+    filtered.forEach(r=>{ const i = Math.min(nb-1, Math.max(0, Math.floor((new Date(r.date).getTime()-start)/size))); buckets[i]++; });
+    const mx = Math.max(...buckets, 1);
+    line.setAttribute('points', buckets.map((c,i)=>`${(i*(760/(nb-1))).toFixed(0)},${(150-(c/mx)*130).toFixed(0)}`).join(' '));
+  } else { line.setAttribute('points','0,150 760,150'); }
+
+  const statusColors = ['var(--orange)','var(--purple)','#5a5468','#a78bfa','var(--success)','#c0392b','#7f8c8d'];
+  document.getElementById('dashLegend').innerHTML = total ? Object.entries(STATUS_LABELS).map(([k,lb],i)=>
+    `<div class="legend-item"><span><i class="dotc" style="background:${statusColors[i]}"></i>${lb}</span><strong>${filtered.filter(r=>r.status===k).length}</strong></div>`).join('') : `<div class="empty">Sem dados no período selecionado</div>`;
+
+  /* velocidade da equipe (timestamps reais) */
+  const HOUR = 3600000; const now = Date.now();
+  const contactMs = filtered.filter(r=>r.firstContactAt).map(r=>new Date(r.firstContactAt)-new Date(r.date));
+  const respMs = filtered.filter(r=>r.firstResponseAt).map(r=>new Date(r.firstResponseAt)-new Date(r.date));
+  const w24 = contactMs.filter(t=>t<=24*HOUR).length, w48 = contactMs.filter(t=>t<=48*HOUR).length;
+  const pendItems = []; filtered.forEach(r=>{ if((r.assignments||[]).length) r.assignments.forEach(a=>{ if(a.status==='pendente') pendItems.push(r); }); else if(r.status==='pendente') pendItems.push(r); });
+  const atrasados = pendItems.filter(r=>now-new Date(r.date)>24*HOUR).length;
+  const semResp = filtered.filter(r=>!(r.assignments||[]).some(a=>a.leaderId));
+  const semContato = filtered.filter(r=>!r.firstContactAt);
+  document.getElementById('velSentence').textContent = total ? `${pct(w24,total)}% dos visitantes receberam primeiro contato em até 24h.` : 'Sem visitantes no período selecionado.';
+  document.getElementById('velStats').innerHTML =
+    statCard('Tempo médio até primeiro contato', fmtDur(avg(contactMs)), 'clock', 'orange') +
+    statCard('Tempo médio até primeira resposta', fmtDur(avg(respMs)), 'repeat', 'purple') +
+    statCard('Contatados em até 24h', pct(w24,total)+'%', 'check-circle', 'orange') +
+    statCard('Contatados em até 48h', pct(w48,total)+'%', 'check-circle', 'purple') +
+    statCard('Contatos pendentes', pendItems.length, 'clock', 'orange') +
+    statCard('Contatos atrasados (+24h)', atrasados, 'alert-triangle', 'purple') +
+    statCard('Visitantes sem responsável', semResp.length, 'users', 'orange') +
+    statCard('Visitantes sem primeiro contato', semContato.length, 'alert-circle', 'purple');
+
+  /* jornada do visitante */
+  const stages = [
+    ['Visitantes', total],
+    ['Primeiro contato', filtered.filter(r=>maxRank(r)>=1).length],
+    ['Contatados', filtered.filter(r=>maxRank(r)>=2).length],
+    ['Em acompanhamento', filtered.filter(r=>maxRank(r)>=3).length],
+    ['Retornaram', filtered.filter(r=>rmap[r.id] && rmap[r.id].returnedLater).length],
+    ['Encaminhados', filtered.filter(r=>everStatus(r,'encaminhado')).length],
+    ['Concluídos', filtered.filter(r=>everStatus(r,'concluido')).length]
+  ];
+  document.getElementById('funnelBox').innerHTML = total ? stages.map(([lb,n])=>`${lg(lb, `${n} · ${pct(n,total)}%`)}<div class="q-progress" style="margin:2px 0 10px;"><div class="q-progress-bar" style="width:${pct(n,total)}%; background:var(--orange);"></div></div>`).join('') : `<div class="empty">Sem dados no período selecionado</div>`;
+
+  /* retorno */
+  const gaps = recorrentes.map(r=>rmap[r.id].gap);
+  document.getElementById('returnBox').innerHTML = total ? [
+    lg('Novos visitantes', total-recorrentes.length), lg('Visitantes recorrentes', recorrentes.length), lg('Taxa de retorno', taxaRetorno+'%'),
+    lg('Retorno em até 7 dias', gaps.filter(g=>g<=7).length), lg('Retorno em até 30 dias', gaps.filter(g=>g<=30).length), lg('Retorno em até 90 dias', gaps.filter(g=>g<=90).length)
+  ].join('') + `<p style="color:var(--muted); font-size:12px; margin:10px 0 0;">O mesmo visitante é identificado pelo WhatsApp (guardado só como código, sem o número).</p>` : `<div class="empty">Sem dados no período selecionado</div>`;
+
+  /* interesses */
+  const intCounts = {}; filtered.forEach(r=>interestsOf(r).forEach(i=>{ intCounts[i]=(intCounts[i]||0)+1; }));
+  const topInts = topEntries(intCounts);
+  document.getElementById('topInterests').innerHTML = topInts.length ? topInts.map(([k,v])=>lg(esc(k), `${v} · ${pct(v,total)}%`)).join('') : `<div class="empty">Sem interesses registrados no período</div>`;
+  document.getElementById('interestAge').innerHTML = topInts.length ? BRACKETS.map(([mn,mx,lb])=>{
+    const c = {}; filtered.filter(r=>{const a=ageOf(r); return a!=null && a>=mn && a<=mx;}).forEach(r=>interestsOf(r).forEach(i=>{ c[i]=(c[i]||0)+1; }));
+    const t = topEntries(c).slice(0,3).map(([k,v])=>`${esc(k)} ${v}`).join(' · ');
+    return lg(lb+' anos', t||'—');
+  }).join('') : `<div class="empty">Sem interesses registrados no período</div>`;
+  const prevCounts = {}; previous.forEach(r=>interestsOf(r).forEach(i=>{ prevCounts[i]=(prevCounts[i]||0)+1; }));
+  const allInts = [...new Set([...Object.keys(intCounts), ...Object.keys(prevCounts)])];
+  document.getElementById('interestPeriod').innerHTML = allInts.length ? allInts.sort((a,b)=>(intCounts[b]||0)-(intCounts[a]||0)).map(k=>{
+    const cur = intCounts[k]||0, pr = prevCounts[k]||0; const d = cur-pr;
+    return lg(esc(k), days>0 ? `${cur} <span style="color:var(--muted); font-weight:400;">(anterior ${pr}, ${d>=0?'+':''}${d})</span>` : cur);
+  }).join('') : `<div class="empty">Sem interesses registrados no período</div>`;
+  const cellWant = filtered.filter(wantsCell);
+  const semInteresse = filtered.filter(r=>interestsOf(r).length===0);
+  document.getElementById('cellBox').innerHTML = total ? [
+    lg('Interessados em célula', `${cellWant.length} · ${pct(cellWant.length,total)}%`),
+    lg('Interessados por ministério', `${topInts.reduce((a,[,v])=>a+v,0)} interesses`),
+    lg('Visitantes sem interesse em ministérios', `${semInteresse.length} · ${pct(semInteresse.length,total)}%`)
+  ].join('') : `<div class="empty">Sem dados no período selecionado</div>`;
+
+  /* distribuição */
+  const asg = []; filtered.forEach(r=>(r.assignments||[]).forEach(a=>asg.push(a)));
+  document.getElementById('distLeaderBox').innerHTML = asg.length ? state.leaders.map(l=>({l, n:asg.filter(a=>a.leaderId===l.id).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n).map(x=>lg(esc(x.l.name), x.n)).join('') + lg('Sem responsável', asg.filter(a=>!a.leaderId).length) : `<div class="empty">Sem atribuições no período</div>`;
+  const cellAsg = asg.filter(a=>a.kind==='celula');
+  document.getElementById('distCellBox').innerHTML = cellAsg.length ? state.cells.map(c=>({c, n:cellAsg.filter(a=>a.cellId===c.id).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n).map(x=>lg(esc(x.c.name), x.n)).join('') + lg('Célula a definir', cellAsg.filter(a=>!a.cellId).length) : `<div class="empty">Sem interessados em célula no período</div>`;
+
+  /* faixa etária e origem */
+  const ageQ = state.questions.find(q=>q.type==='age');
+  const originQ = state.questions.find(q=>q.type==='single' && /conheceu|origem/i.test(q.label));
+  const ageCounts = BRACKETS.map(([mn,mx])=>filtered.filter(r=>{const a=ageOf(r); return a!=null && a>=mn && a<=mx;}).length);
+  document.getElementById('ageBreakdown').innerHTML = ageQ ? BRACKETS.map(([,,lb],i)=>lg(lb+' anos', ageCounts[i])).join('') : `<div class="empty">Nenhuma pergunta de idade configurada</div>`;
+  const originCounts = {};
+  if(originQ) filtered.forEach(r=>{ const v=r.answers[originQ.id]; if(v) originCounts[v]=(originCounts[v]||0)+1; });
+  document.getElementById('originBreakdown').innerHTML = originQ && Object.keys(originCounts).length ? topEntries(originCounts).map(([k,v])=>lg(esc(k), `${v} · ${pct(v,total)}%`)).join('') : `<div class="empty">Sem respostas suficientes no período</div>`;
+
+  /* dia e horário (registrados automaticamente) */
+  const dayCounts = Array(7).fill(0), hourCounts = Array(24).fill(0);
+  filtered.forEach(r=>{ const d = new Date(r.date); dayCounts[d.getDay()]++; hourCounts[d.getHours()]++; });
+  document.getElementById('dayBox').innerHTML = total ? WEEKDAYS.map((d,i)=>lg(d, `${dayCounts[i]} · ${pct(dayCounts[i],total)}%`)).join('') : `<div class="empty">Sem dados no período selecionado</div>`;
+  const periods = [['Manhã (6h–12h)',6,12],['Tarde (12h–18h)',12,18],['Noite (18h–24h)',18,24],['Madrugada (0h–6h)',0,6]];
+  const pc = periods.map(([lb,a,b])=>[lb, hourCounts.slice(a,b).reduce((x,y)=>x+y,0)]);
+  const peakHours = hourCounts.map((c,h)=>[h,c]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  document.getElementById('hourBox').innerHTML = total ? pc.map(([lb,n])=>lg(lb, `${n} · ${pct(n,total)}%`)).join('') + lg('Horários de pico', peakHours.map(([h,c])=>`${h}h (${c})`).join(' · ')) : `<div class="empty">Sem dados no período selecionado</div>`;
+
+  const recent = [...filtered].reverse().slice(0,6);
+  document.getElementById('dashRecent').innerHTML = recent.length ? `<table class="resp"><tr><th>Visitante</th><th>Data</th><th>Status</th></tr>` +
+    recent.map(r=>`<tr><td>${esc(nameOf(r))}</td><td>${fmtDate(r.date)}</td><td>${STATUS_LABELS[r.status]}</td></tr>`).join('') + `</table>`
+    : `<div class="empty">Nenhuma resposta no período selecionado.</div>`;
+
+  renderInsights({filtered, previous, total, days, stages, intCounts, topInts, cellWant, semResp, atrasados, w24, ageCounts, originCounts, dayCounts, hourCounts, pc, recorrentes, taxaRetorno, contactMs});
+}
+function renderInsights(M){
+  const box = document.getElementById('insightsBox');
+  const cards = []; const {filtered, previous, total, days} = M;
+  const periodLabel = days===0 ? 'todo o período' : `últimos ${days} dias`;
+  if(!total){ box.innerHTML = `<div class="insight-card"><div class="ins-row"><span class="ins-tag">SEM DADOS</span></div>Sem respostas suficientes no período selecionado.</div>`; return; }
+
+  /* 1. crescimento por faixa etária */
+  if(days>0){
+    let best = null;
+    BRACKETS.forEach(([mn,mx,lb])=>{
+      const inB = r=>{const a=ageOf(r); return a!=null && a>=mn && a<=mx;};
+      const cur = filtered.filter(inB), pr = previous.filter(inB);
+      if(cur.length>=3 && (pr.length>=1 || cur.length>=3)){
+        const g = pr.length ? Math.round(((cur.length-pr.length)/pr.length)*100) : 100;
+        if(!best || Math.abs(g)>Math.abs(best.g)) best = {lb, cur, pr, g};
+      }
+    });
+    if(best){
+      const withMin = best.cur.filter(r=>interestsOf(r).length).length, withCell = best.cur.filter(wantsCell).length;
+      const c = {}; best.cur.forEach(r=>interestsOf(r).forEach(i=>{ c[i]=(c[i]||0)+1; })); const top = topEntries(c)[0];
+      cards.push({title:'Visitantes por faixa etária',
+        dado:`${best.cur.length} visitantes de ${best.lb} anos (${best.pr.length} no período anterior).`,
+        insight:`Visitantes de ${best.lb} anos ${best.g>=0?'aumentaram':'caíram'} ${Math.abs(best.g)}% em relação ao período anterior (${periodLabel}).`,
+        context:`${pct(withMin,best.cur.length)}% demonstraram interesse em ministérios${top?` (principal: ${top[0]})`:''} e ${pct(withCell,best.cur.length)}% em células.`,
+        recommendation: best.g>=0 ? 'Priorizar o acompanhamento desse grupo e avaliar a capacidade atual dos responsáveis.' : 'Investigar os canais que traziam esse público e retomar as ações que funcionavam.'});
+    }
+  }
+  /* 2. velocidade */
+  if(total>=3){
+    const p24 = pct(M.w24, total);
+    cards.push({title:'Velocidade de contato',
+      dado:`${p24}% dos visitantes receberam primeiro contato em até 24h.`,
+      insight: p24<70 ? 'A equipe está demorando mais que o ideal para o primeiro contato.' : 'A equipe está respondendo rápido aos novos visitantes.',
+      context:`${M.atrasados} contato(s) atrasado(s) e ${M.semResp.length} visitante(s) sem responsável no período.`,
+      recommendation: p24<70 ? 'Redistribuir os contatos pendentes e definir um prazo de 24h para o primeiro contato.' : 'Manter o ritmo e acompanhar os contatos que ainda estão pendentes.'});
+  }
+  /* 3. sem responsável */
+  if(M.semResp.length>0){
+    const c = {}; M.semResp.forEach(r=>interestsOf(r).forEach(i=>{ c[i]=(c[i]||0)+1; })); const top = topEntries(c)[0];
+    cards.push({title:'Visitantes sem responsável',
+      dado:`${M.semResp.length} visitante(s) (${pct(M.semResp.length,total)}%) sem nenhum responsável.`,
+      insight:'Esses visitantes não caíram em nenhuma regra de distribuição e ninguém foi avisado.',
+      context: top ? `O interesse mais comum entre eles é ${top[0]} (${top[1]}).` : 'Eles não indicaram interesse em ministérios.',
+      recommendation: top ? `Cadastrar um líder para ${top[0]} ou criar uma regra de distribuição para esses casos.` : 'Definir um responsável de acompanhamento geral e uma regra para esses visitantes.'});
+  }
+  /* 4. ministério mais procurado */
+  if(M.topInts.length && M.topInts[0][1]>=2){
+    const [name, n] = M.topInts[0];
+    const ages = {}; filtered.filter(r=>interestsOf(r).includes(name)).forEach(r=>{ const a=ageOf(r); const b = BRACKETS.find(([mn,mx])=>a!=null&&a>=mn&&a<=mx); if(b) ages[b[2]]=(ages[b[2]]||0)+1; });
+    const topAge = topEntries(ages)[0];
+    cards.push({title:'Ministério mais procurado',
+      dado:`${n} visitantes (${pct(n,total)}%) demonstraram interesse em ${name}.`,
+      insight:`${name} é o ministério com maior procura no período (${periodLabel}).`,
+      context: topAge ? `A maior parte desse grupo tem ${topAge[0]} anos (${topAge[1]}).` : 'Sem faixa etária registrada para esse grupo.',
+      recommendation:`Reforçar o acompanhamento pela liderança de ${name} e verificar se há capacidade para receber esses visitantes.`});
+  }
+  /* 5. células */
+  if(M.cellWant.length>0){
+    const semCel = M.cellWant.filter(r=>!(r.assignments||[]).some(a=>a.kind==='celula' && a.cellId)).length;
+    const ativas = state.cells.filter(c=>c.status!=='inactive').length;
+    cards.push({title:'Interesse em células',
+      dado:`${M.cellWant.length} visitantes (${pct(M.cellWant.length,total)}%) querem participar de uma célula.`,
+      insight: semCel>0 ? `${semCel} deles ainda não estão ligados a uma célula específica.` : 'Todos os interessados já estão ligados a uma célula.',
+      context:`A igreja tem ${ativas} célula(s) ativa(s) cadastrada(s).`,
+      recommendation: semCel>0 ? 'Relacionar esses visitantes a uma célula e avaliar se é preciso abrir novas turmas.' : 'Acompanhar a chegada dos visitantes nas células nas próximas semanas.'});
+  }
+  /* 6. origem */
+  const topOrigin = topEntries(M.originCounts)[0];
+  if(topOrigin && topOrigin[1]>=2){
+    const second = topEntries(M.originCounts)[1];
+    cards.push({title:'Origem dos visitantes',
+      dado:`${topOrigin[1]} visitantes (${pct(topOrigin[1],total)}%) chegaram por ${topOrigin[0]}.`,
+      insight:`${topOrigin[0]} é o canal que mais traz visitantes no período.`,
+      context: second ? `O segundo canal é ${second[0]} (${second[1]}).` : 'Não há outro canal com volume relevante.',
+      recommendation:`Reforçar a divulgação em ${topOrigin[0]} e medir o retorno dos demais canais.`});
+  }
+  /* 7. dia e horário */
+  if(total>=4){
+    const pd = M.dayCounts.indexOf(Math.max(...M.dayCounts)); const pp = [...M.pc].sort((a,b)=>b[1]-a[1])[0];
+    cards.push({title:'Dia e horário de maior volume',
+      dado:`${WEEKDAYS[pd]} concentra ${pct(M.dayCounts[pd], total)}% dos visitantes.`,
+      insight:`O maior volume de visitantes chega na ${WEEKDAYS[pd].toLowerCase()}, no período da ${pp[0].split(' ')[0].toLowerCase()}.`,
+      context:`${pp[1]} visitante(s) responderam nessa faixa de horário.`,
+      recommendation:'Garantir equipe disponível para o primeiro contato nas 24h seguintes ao pico.'});
+  }
+  /* 8. funil */
+  if(total>=4){
+    let worst = null;
+    for(let i=1;i<M.stages.length;i++){ if(i===4) continue; const prev=M.stages[i===5?3:i-1][1]; const cur=M.stages[i][1]; if(prev>0){ const drop = Math.round(((prev-cur)/prev)*100); if(!worst || drop>worst.drop) worst={drop, from:M.stages[i===5?3:i-1][0], to:M.stages[i][0], prev, cur}; } }
+    if(worst && worst.drop>0) cards.push({title:'Jornada do visitante',
+      dado:`${worst.prev} visitantes chegaram a "${worst.from}" e ${worst.cur} a "${worst.to}".`,
+      insight:`A maior perda da jornada acontece entre "${worst.from}" e "${worst.to}" (${worst.drop}%).`,
+      context:`${pct(M.stages[M.stages.length-1][1], total)}% dos visitantes chegaram a Concluídos.`,
+      recommendation:`Revisar o que acontece na etapa "${worst.to}" e definir um responsável por essa transição.`});
+  }
+  /* 9. retorno */
+  if(total>=5){
+    cards.push({title:'Retorno de visitantes',
+      dado:`Taxa de retorno de ${M.taxaRetorno}% (${M.recorrentes.length} recorrentes).`,
+      insight: M.taxaRetorno<20 ? 'Poucos visitantes voltaram no período.' : 'Uma parte relevante dos visitantes voltou.',
+      context:`${total-M.recorrentes.length} visitante(s) são novos no período.`,
+      recommendation: M.taxaRetorno<20 ? 'Reforçar o contato nos primeiros dias e convidar o visitante para o próximo encontro.' : 'Acompanhar os recorrentes de perto e convidá-los para células ou ministérios.'});
+  }
+  if(!cards.length){ box.innerHTML = `<div class="insight-card"><div class="ins-row"><span class="ins-tag">SEM PADRÃO</span></div>Nenhum padrão relevante identificado com os dados atuais.</div>`; return; }
+  box.innerHTML = cards.slice(0,6).map(c=>`
+    <div class="insight-card"><div class="ins-title">${esc(c.title)}</div>
+      <div class="ins-row"><span class="ins-tag ins-tag-muted">DADO</span>${esc(c.dado)}</div>
+      <div class="ins-row"><span class="ins-tag">INSIGHT</span>${esc(c.insight)}</div>
+      <div class="ins-row"><span class="ins-tag ins-tag-muted">CONTEXTO</span>${esc(c.context)}</div>
+      <div class="ins-row"><span class="ins-tag ins-tag-rec">RECOMENDAÇÃO</span>${esc(c.recommendation)}</div>
+    </div>`).join('');
+}
+function setStatus(id, status){
+  const r = state.responses.find(r=>r.id===id); if(!r) return;
+  stampStatus(r, status); r.status = status; save(); renderAll();
+}
+function statusOptions(cur){ return Object.entries(STATUS_LABELS).map(([k,lb])=>`<option value="${k}" ${cur===k?'selected':''}>${lb}</option>`).join(''); }
+function statusSelect(r){ return `<select class="mini" onchange="setStatus(${r.id}, this.value)">${statusOptions(r.status)}</select>`; }
+function assignStatusSelect(r, a){ return `<select class="mini" onchange="setAssignmentStatus(${r.id},'${a.id}', this.value)">${statusOptions(a.status)}</select>`; }
+function fmtDate(d){ return new Date(d).toLocaleString('pt-BR'); }
+function historyHtml(h){ return (h||[]).map(x=>`${STATUS_LABELS[x.status]||x.status} (${fmtDate(x.at)})`).join(' → '); }
+function assignmentBlock(r, a){
+  const l = leaderById(a.leaderId);
+  const leaderPart = l ? `<b>${esc(l.name)}</b>` : `<select class="mini" onchange="setAssignmentLeader(${r.id},'${a.id}',this.value)"><option value="">Sem responsável — escolher</option>${state.leaders.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select>`;
+  const cellPart = a.kind==='celula' ? `<select class="mini" onchange="setAssignmentCell(${r.id},'${a.id}',this.value)"><option value="">Relacionar célula...</option>${state.cells.map(c=>`<option value="${c.id}" ${a.cellId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select>` : '';
+  return `<div style="margin-bottom:10px;"><div><b>${esc(a.target)}</b> → ${leaderPart}</div>
+    <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">${assignStatusSelect(r,a)}${cellPart}</div>
+    <details><summary style="cursor:pointer; color:var(--muted); font-size:11.5px; margin-top:3px;">Histórico</summary><div style="color:var(--muted); font-size:11.5px;">${historyHtml(a.history)}</div></details></div>`;
+}
+function answerDetails(r){
+  return Object.entries(r.answers).map(([qid,val])=>{
+    if(qid.endsWith('__cell')){ const c = cellById(val); return c ? `<div style="margin-bottom:2px;"><span style="color:var(--muted)">Preferência de célula:</span> ${esc(c.name)}</div>` : ''; }
+    const q = state.questions.find(q=>q.id===qid);
+    return q ? `<div style="margin-bottom:2px;"><span style="color:var(--muted)">${esc(q.label)}:</span> ${esc(Array.isArray(val)?val.join(', '):val)}</div>` : '';
+  }).join('');
+}
+function renderVisitors(){
+  const wrap = document.getElementById('visitorsList');
+  const list = [...state.responses].reverse();
+  wrap.innerHTML = list.length ? `<table class="resp"><tr><th>Nome</th><th>Data</th><th>Atribuições</th><th>Detalhes</th></tr>` +
+    list.map(r=>`<tr><td>${esc(nameOf(r))}<div style="font-size:11.5px; color:var(--muted)">${esc(whatsOf(r))}</div></td><td>${fmtDate(r.date)}</td>
+      <td>${(r.assignments||[]).length ? r.assignments.map(a=>assignmentBlock(r,a)).join('') : `<div style="margin-bottom:4px; color:var(--muted)">Sem atribuição (nenhum interesse ou regra)</div>${statusSelect(r)}`}</td>
+      <td>${answerDetails(r)}</td></tr>`).join('') + `</table>` : `<div class="empty">Nenhum visitante respondeu o questionário ainda.</div>`;
+}
+
+/* ================= ÁREA DO LÍDER ================= */
+function populateLeaderSelect(){
+  const sel = document.getElementById('leaderViewSelect');
+  const current = sel.value;
+  sel.innerHTML = state.leaders.length ? state.leaders.map(l=>`<option value="${l.id}">${l.name}</option>`).join('') : `<option value="">Nenhum líder cadastrado</option>`;
+  if(current && state.leaders.some(l=>l.id===current)) sel.value = current;
+}
+function renderLeaderArea(){
+  populateLeaderSelect();
+  const leaderId = document.getElementById('leaderViewSelect').value;
+  const leader = leaderById(leaderId);
+  if(!leader){
+    ['leaderStats','leaderFollowList','leaderAssignedList','leaderHistoryList'].forEach(id=>document.getElementById(id).innerHTML = `<div class="empty">Cadastre um líder em Líderes e ministérios para ver esta área.</div>`);
+    document.getElementById('leaderProfileCard').innerHTML = `<div class="empty">Nenhum líder selecionado.</div>`;
+    return;
+  }
+  const mine = []; state.responses.forEach(r=>(r.assignments||[]).forEach(a=>{ if(a.leaderId===leaderId) mine.push({r,a}); }));
+  const novos = mine.filter(x=>x.a.status==='pendente'||x.a.status==='contatado');
+  const emAcomp = mine.filter(x=>x.a.status==='acompanhamento'||x.a.status==='encaminhado');
+  const historico = mine.filter(x=>['concluido','sem_interesse','nao_respondeu'].includes(x.a.status));
+
+  document.getElementById('leaderStats').innerHTML = `
+    <div class="card stat"><div class="stat-top"><div class="k">Total atribuídos</div><div class="ic ic-orange">${ic('users')}</div></div><div class="v">${mine.length}</div></div>
+    <div class="card stat"><div class="stat-top"><div class="k">Novos contatos</div><div class="ic ic-purple">${ic('user-plus')}</div></div><div class="v">${novos.length}</div></div>
+    <div class="card stat"><div class="stat-top"><div class="k">Em acompanhamento</div><div class="ic ic-orange">${ic('repeat')}</div></div><div class="v">${emAcomp.length}</div></div>
+    <div class="card stat"><div class="stat-top"><div class="k">Concluídos</div><div class="ic ic-purple">${ic('check-circle')}</div></div><div class="v">${mine.filter(x=>x.a.status==='concluido').length}</div></div>`;
+
+  const rowsFor = (list)=> list.length ? `<table class="resp"><tr><th>Visitante</th><th>Atribuição</th><th>Data</th><th>Status</th></tr>` +
+    list.map(({r,a})=>`<tr><td>${esc(nameOf(r))}<div style="font-size:11.5px; color:var(--muted)">${esc(whatsOf(r))}</div></td><td>${esc(a.target)}</td><td>${fmtDate(r.date)}</td><td>${assignStatusSelect(r,a)}</td></tr>`).join('') + `</table>` :
+    `<div class="empty">Nada por aqui.</div>`;
+  document.getElementById('leaderFollowList').innerHTML = rowsFor(emAcomp);
+  document.getElementById('leaderAssignedList').innerHTML = rowsFor(novos);
+  document.getElementById('leaderHistoryList').innerHTML = rowsFor(historico);
+
+  document.getElementById('leaderProfileCard').innerHTML = `
+    <div class="profile-card">${leaderAvatar(leader,64)}
+      <div><div style="font-weight:700; font-size:16px;">${esc(leader.name)}</div>
+      <div style="color:var(--muted); font-size:13px;">${esc(LEADER_TYPES[leader.type]||leader.role||'Líder')} · ${leader.responsavel==='secundario'?'Responsável secundário':'Responsável principal'}</div></div>
+    </div>
+    <div class="legend-item"><span>Ministério(s)</span><strong>${esc((leader.ministries||[]).join(', ')||'—')}</strong></div>
+    <div class="legend-item"><span>Célula(s)</span><strong>${esc(cellsOfLeader(leader.id).map(c=>c.name).join(', ')||'—')}</strong></div>
+    <div class="legend-item"><span>Faixa etária</span><strong>${(leader.ageMin||leader.ageMax)?`${leader.ageMin||'0'}–${leader.ageMax||'∞'} anos`:'todas as idades'}</strong></div>
+    <div class="legend-item"><span>WhatsApp</span><strong>${esc(leader.whatsapp||'—')}</strong></div>
+    <div class="legend-item"><span>E-mail</span><strong>${esc(leader.email||'—')}</strong></div>`;
+}
+
+/* ================= DADOS DE DEMONSTRAÇÃO ================= */
+function clearResponses(){
+  if(!confirm('Apagar todos os visitantes cadastrados?')) return;
+  state.responses = []; save(); renderAll();
+}
+function seedDemo(){
+  if(state.responses.length && !confirm('Isto adiciona visitantes de exemplo aos que já existem. Continuar?')) return;
+  let seed = 7; const rnd = ()=>{ seed = (seed*16807) % 2147483647; return seed/2147483647; };
+  const pick = arr=>arr[Math.floor(rnd()*arr.length)];
+  if(!state.leaders.length){
+    [['Ana Souza','ministerio',['Louvor','Dança'],'','', 'Líder de Louvor'], ['Pedro Lima','ministerio',['Intercessão'],'','', 'Líder de Intercessão'],
+     ['Carla Mendes','ministerio',['Juventude'],'13','25','Líder de Juventude'], ['Marcos Dias','celula',[],'','', 'Líder de células'],
+     ['Rita Alves','acompanhamento',[],'','', 'Acompanhamento geral']].forEach(([name,type,ms,mn,mx,role])=>state.leaders.push({id:uid(), name, photo:null, email:'', whatsapp:'', ministries:ms, role, type, ageMin:mn, ageMax:mx, responsavel:'principal', status:'active'}));
+  }
+  if(!state.cells.length){
+    const byName = n=>state.leaders.find(l=>l.name===n); const ml = byName('Marcos Dias');
+    state.cells.push({id:uid(), name:'Célula Centro', leaderIds:ml?[ml.id]:[], day:'Quarta', time:'19:30', region:'Centro', ageMin:'', ageMax:'', status:'active'},
+                     {id:uid(), name:'Célula Jovens', leaderIds:byName('Carla Mendes')?[byName('Carla Mendes').id]:[], day:'Sexta', time:'20:00', region:'Zona Sul', ageMin:'13', ageMax:'25', status:'active'});
+  }
+  const qs = state.questions; const byType = t=>qs.find(q=>q.type===t);
+  const firstQ = qs.find(q=>q.type==='boolean' && /primeira/i.test(q.label)), nameQ = byType('short'), wQ = byType('whatsapp'), ageQ = byType('age'), iQ = interestQ(), cQ = cellQ();
+  const oQ = qs.find(q=>q.type==='single' && /conheceu|origem/i.test(q.label)), pQ = qs.find(q=>/oração/i.test(q.label));
+  const names = ['Lucas Prado','Maria Clara','João Pedro','Beatriz Rocha','Gabriel Nunes','Larissa Melo','Felipe Costa','Amanda Reis','Rafael Torres','Julia Freitas','Thiago Ramos','Camila Duarte','Bruno Alves','Isabela Cruz','Daniel Vieira'];
+  const now = Date.now(); const DAY = 86400000; const made = [];
+  const mkAnswers = (i, first)=>{
+    const a = {}; const age = pick([9,14,16,17,19,21,23,24,28,33,38,45,52]);
+    if(firstQ) a[firstQ.id] = first ? 'Sim' : 'Não';
+    if(nameQ) a[nameQ.id] = names[i % names.length] + (i>=names.length?' '+(Math.floor(i/names.length)+1):'');
+    if(wQ) a[wQ.id] = '419'+String(90000000+i*137).slice(0,8);
+    if(ageQ) a[ageQ.id] = String(age);
+    if(oQ) a[oQ.id] = pick(['Instagram','Instagram','Google','Amigo/família','Amigo/família','Amigo/família','Evento','Indicação','Outro']);
+    if(iQ){ const opts = iQ.options.filter(o=>!NONE_RE.test(o)); const none = iQ.options.find(o=>NONE_RE.test(o));
+      if(rnd()<0.25 && none) a[iQ.id]=[none]; else { const n = 1+Math.floor(rnd()*2); const set = new Set(); for(let k=0;k<n;k++) set.add(pick(opts)); if(age<=25 && rnd()<0.5) set.add('Juventude'); a[iQ.id]=[...set]; } }
+    if(cQ){ if(rnd()<0.4){ a[cQ.id]='Sim'; const cs = state.cells.filter(c=>cellFitsAge(c,age)); if(cs.length && rnd()<0.5) a[cQ.id+'__cell']=pick(cs).id; } else a[cQ.id]='Não'; }
+    if(pQ) a[pQ.id] = rnd()<0.4 ? 'Sim' : 'Não';
+    return a;
+  };
+  const build = (answers, when, first)=>{
+    const iso = new Date(when).toISOString();
+    const r = {id:when+Math.floor(rnd()*1000), date:iso, answers, status:'pendente', history:[{status:'pendente', at:iso}], firstContactAt:null, firstResponseAt:null, visitorKey:keyOfAnswers(answers), assignments:[]};
+    r.assignments = computeAssignments(r);
+    const targets = r.assignments.length ? r.assignments : [null];
+    const contacted = rnd()<0.82; const delay = (rnd()<0.7 ? (0.5+rnd()*22) : (26+rnd()*90))*3600000;
+    if(contacted && now-when > delay){
+      targets.forEach((a,k)=>{
+        const path = pick([['contatado'],['contatado'],['contatado','acompanhamento'],['contatado','acompanhamento'],['contatado','acompanhamento','concluido'],['contatado','acompanhamento','encaminhado','concluido'],['nao_respondeu'],['contatado','sem_interesse']]);
+        let t = when + delay + k*3600000*2;
+        path.forEach(st=>{ if(t>now) return; const at = new Date(t).toISOString();
+          if(a){ a.status=st; a.history.push({status:st, at}); }
+          r.history.push({status:st, at}); if(!r.firstContactAt) r.firstContactAt = at;
+          if(['acompanhamento','encaminhado','concluido'].includes(st) && !r.firstResponseAt) r.firstResponseAt = at;
+          if(!a) r.status = st; t += (6+rnd()*60)*3600000; });
+      });
+      if(r.assignments.length) r.status = overallStatus(r);
+    }
+    return r;
+  };
+  for(let i=0;i<38;i++){
+    const daysAgo = Math.floor(Math.pow(rnd(),1.2)*60); const base = new Date(now - daysAgo*DAY);
+    base.setHours(rnd()<0.7 ? 9+Math.floor(rnd()*3) : 18+Math.floor(rnd()*3), Math.floor(rnd()*60), 0, 0);
+    if(rnd()<0.6){ const shift = (base.getDay()===0)?0:(7-base.getDay()); base.setDate(base.getDate()+shift); if(base.getTime()>now) base.setDate(base.getDate()-7); }
+    made.push(build(mkAnswers(i, true), base.getTime(), true));
+  }
+  for(let k=0;k<9;k++){
+    const src = made[k*3]; const gap = pick([5,7,12,20,35,60]); const when = new Date(src.date).getTime() + gap*DAY;
+    if(when>now) continue;
+    const a = {...src.answers}; if(firstQ) a[firstQ.id]='Não';
+    made.push(build(a, when, false));
+  }
+  state.responses.push(...made); state.responses.sort((a,b)=>new Date(a.date)-new Date(b.date));
+  save(); renderAll();
+}
+
+/* ================= RENDER ALL ================= */
+function renderAll(){
+  renderPublicForm(); renderBuilder(); loadAppearanceForm();
+  renderLeaders(); renderCells(); renderDistribution(); renderDashboard(); renderVisitors();
+  renderLeaderArea();
+  paintStaticIcons();
+}
+renderAll();
+</script>
+</body>
+</html>
