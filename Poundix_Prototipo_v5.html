@@ -1,0 +1,2352 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Poundix — Protótipo v5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0A0B; --surface:#111113; --surface-2:#18181B; --border:#26262B;
+    --orange:#FF7A29; --purple:#8E8E99; --text:#FAFAFA; --muted:#8A8A93; --success:#33C48D;
+    box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:'Inter',-apple-system,sans-serif; -webkit-font-smoothing:antialiased; font-feature-settings:'cv11','ss01';}
+  button,input,select,textarea{font-family:inherit;}
+  h1,h2,h3{font-family:'Inter',sans-serif; font-weight:600;}
+
+  .meta-bar{position:sticky; top:0; z-index:50; background:rgba(13,11,20,.9); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border); padding:calc(14px + env(safe-area-inset-top,0px)) 20px 14px;
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;}
+  .meta-brand{display:flex; align-items:center; gap:10px; margin-right:auto;}
+  .meta-brand span{font-weight:600; font-size:16px;}
+  .switcher{display:flex; gap:6px; background:var(--surface); border:1px solid var(--border); padding:4px; border-radius:12px; overflow-x:auto;}
+  .switcher button{appearance:none; border:none; background:transparent; color:var(--muted); font-size:13px; font-weight:600;
+    padding:8px 14px; border-radius:8px; cursor:pointer; white-space:nowrap;}
+  .switcher button.active{background:var(--surface-2); color:var(--text); box-shadow:inset 0 0 0 1px var(--border);}
+  .switcher button:not(.active):hover{color:var(--text); background:var(--surface-2);}
+
+  .view{display:none;}
+  .view.active{display:block; animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0} to{opacity:1}}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px;}
+  .btn{appearance:none; border:none; cursor:pointer; font-weight:500; font-size:14px; padding:11px 18px; border-radius:10px; display:inline-flex; align-items:center; gap:8px;}
+  .btn:active{transform:scale(.97);}
+  .btn:disabled{opacity:.4; cursor:not-allowed;}
+  .btn-primary{background:var(--orange); color:#140900;}
+  .btn-ghost{background:var(--surface-2); color:var(--text); border:1px solid var(--border);}
+  .btn-ghost:hover{border-color:var(--purple);}
+  .eyebrow{color:var(--muted); font-size:13px; margin:0 0 4px;}
+  .title{font-size:22px; font-weight:600; margin:0 0 2px; letter-spacing:-.2px;}
+  .empty{color:var(--muted); font-size:13.5px; padding:24px 0; text-align:center;}
+
+  /* QUESTIONÁRIO PÚBLICO — mobile-first, motor único */
+  .qtheme{background:var(--qbg,#fff); color:var(--qtext,#0A0A0B); --qline:color-mix(in srgb,var(--qtext,#0A0A0B) 18%,transparent);}
+  .qv.active{display:flex; justify-content:center; min-height:calc(100dvh - 62px);}
+  body.public-entry .meta-bar{display:none;}
+  body.public-entry .qv.active{min-height:100dvh;}
+  .qshell{width:100%; max-width:480px; padding:24px 22px calc(28px + env(safe-area-inset-bottom,0px)); display:flex; flex-direction:column;}
+  .qhead{display:flex; justify-content:center; align-items:center; min-height:52px;}
+  .qlogo{height:44px; width:auto; max-width:70%; object-fit:contain; display:block;}
+  .qlogo-fb{font-weight:600; font-size:16px; letter-spacing:-.01em; text-align:center;}
+  .qmain{flex:1; display:flex; flex-direction:column; justify-content:center; padding:28px 0 8px;}
+  .qstep{animation:qin .3s cubic-bezier(.2,.8,.2,1) both;}
+  @keyframes qin{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+  @media (prefers-reduced-motion:reduce){.qstep{animation:none;} .qopt,.qbtn,.qprog i{transition:none;}}
+  .qprog{height:2px; background:var(--qline); border-radius:2px; overflow:hidden; margin:0 0 36px;}
+  .qprog i{display:block; height:100%; background:var(--qtext); opacity:.75; border-radius:2px; transition:width .3s ease;}
+  .qq{font-size:24px; line-height:1.28; font-weight:600; letter-spacing:-.015em; margin:0 0 8px; text-wrap:balance;}
+  .qd{font-size:15px; line-height:1.5; color:var(--q2); margin:0;}
+  .qsub{font-size:13.5px; color:var(--q2); margin:0 0 10px;}
+  .qfield{margin-top:26px;}
+  .qinput{width:100%; display:block; font:inherit; font-size:18px; padding:16px; color:var(--qtext); background:transparent; border:1px solid var(--qline); border-radius:12px; outline:none; transition:border-color .15s, box-shadow .15s;}
+  .qinput::placeholder{color:var(--q2); opacity:.65;}
+  .qinput:focus{border-color:var(--qtext); box-shadow:0 0 0 3px color-mix(in srgb,var(--qtext) 10%,transparent);}
+  textarea.qinput{min-height:120px; resize:vertical; line-height:1.5;}
+  .qopts{display:flex; flex-direction:column; gap:10px;}
+  .qopts.two{display:grid; grid-template-columns:1fr 1fr;}
+  .qopt{appearance:none; font:inherit; font-size:16px; font-weight:500; color:var(--qtext); background:transparent; border:1px solid var(--qline); border-radius:12px; min-height:56px; padding:14px 16px; text-align:left; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; transition:border-color .15s, background .15s, transform .08s;}
+  .qopt:hover{border-color:color-mix(in srgb,var(--qtext) 45%,transparent);}
+  .qopt:active{transform:scale(.985);}
+  .qopt.picked{border-color:var(--qtext); background:color-mix(in srgb,var(--qtext) 7%,transparent);}
+  .qchk{width:18px; height:18px; border-radius:50%; border:1.5px solid var(--qline); flex-shrink:0; position:relative;}
+  .qopt.picked .qchk{background:var(--qtext); border-color:var(--qtext);}
+  .qopt.picked .qchk::after{content:""; position:absolute; left:5px; top:2px; width:4px; height:8px; border:solid var(--qbg); border-width:0 2px 2px 0; transform:rotate(45deg);}
+  .qopt:focus-visible,.qbtn:focus-visible,.qback:focus-visible,.qlink:focus-visible{outline:2px solid var(--qtext); outline-offset:3px;}
+  .qcells{margin-top:20px;}
+  .qhint{min-height:20px; margin:10px 0 0; font-size:13px; color:var(--q2);}
+  .qcount{text-align:center; font-size:12.5px; color:var(--q2); margin:14px 0 14px; font-variant-numeric:tabular-nums;}
+  .qactions{display:flex; gap:10px;}
+  .qbtn{appearance:none; font:inherit; font-size:16px; font-weight:600; flex:1; height:54px; border:0; border-radius:12px; cursor:pointer; background:var(--qbtn); color:var(--qbtntext); transition:opacity .15s, transform .08s, filter .15s; display:inline-flex; align-items:center; justify-content:center; gap:8px;}
+  .qbtn:hover{filter:brightness(.92);}
+  .qbtn:active{transform:scale(.98);}
+  .qbtn:disabled{opacity:.3; cursor:not-allowed; filter:none; transform:none;}
+  .qbtn.sec{background:transparent; color:var(--qtext); border:1px solid var(--qline); flex:none; padding:0 26px;}
+  .qback{appearance:none; font:inherit; font-size:15px; font-weight:500; height:54px; padding:0 18px; border-radius:12px; background:transparent; color:var(--q2); border:1px solid var(--qline); cursor:pointer;}
+  .qback:hover{color:var(--qtext);}
+  .qspin{width:18px; height:18px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:qspin .7s linear infinite;}
+  @keyframes qspin{to{transform:rotate(360deg);}}
+  .qdone{text-align:center;}
+  .qcheck{width:52px; height:52px; border-radius:50%; background:var(--qbtn); color:var(--qbtntext); display:flex; align-items:center; justify-content:center; margin:0 auto 22px;}
+  .qcta{margin-top:34px; padding-top:26px; border-top:1px solid var(--qline); display:flex; flex-direction:column; align-items:center;}
+  .qcta p{margin:0 0 14px; font-size:15px; color:var(--q2);}
+  .qlink{appearance:none; background:none; border:0; font:inherit; font-size:14px; color:var(--q2); text-decoration:underline; cursor:pointer; margin-top:22px;}
+  /* pré-visualização dentro do painel */
+  .pv{border:1px solid var(--border); border-radius:14px; padding:20px 18px 18px; pointer-events:none;}
+  .pv .qhead{min-height:40px; margin-bottom:18px;} .pv .qlogo{height:34px;} .pv .qprog{margin-bottom:24px;}
+  .pv .qq{font-size:19px;} .pv .qfield{margin-top:18px;} .pv .qinput{font-size:15px; padding:12px 14px;}
+  .pv .qopt{min-height:46px; font-size:14px; padding:10px 14px;} .pv .qbtn{height:46px; font-size:14px;} .pv .qcount{margin:10px 0 12px;}
+  .pvnav{display:flex; align-items:center; justify-content:space-between; margin-top:12px; font-size:12.5px; color:var(--muted);}
+  /* editor */
+  .qn-switch{display:inline-flex; gap:4px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:3px; margin-bottom:10px;}
+  .qn-switch button{appearance:none; border:0; background:transparent; color:var(--muted); font-size:13px; font-weight:500; padding:7px 14px; border-radius:8px; cursor:pointer;}
+  .qn-switch button.on{background:var(--surface-2); color:var(--text);}
+  .qn-meta{display:grid; grid-template-columns:1fr 1.4fr auto; gap:12px; align-items:end; margin-bottom:16px; padding:16px;}
+  .qn-meta .field{margin:0;}
+  .q-desc{width:100%; background:transparent; border:none; border-bottom:1px solid var(--border); color:var(--muted); font-size:12.5px; padding:6px 2px; margin:-4px 0 12px; outline:none;}
+  .cond-row{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; font-size:12px; color:var(--muted);}
+  .mini-note{font-size:12px; color:var(--muted); margin-top:8px;}
+  .logo-prev{width:150px; height:64px; border:1px dashed var(--border); border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12px; overflow:hidden; background:var(--surface-2);}
+  .logo-prev img{max-width:90%; max-height:48px; width:auto; height:auto;}
+  .color-row input[type=text]{width:104px; font-variant-numeric:tabular-nums;}
+  .side-logo{height:28px; width:auto; max-width:120px; object-fit:contain;}
+  .contrast-box{margin-top:6px; font-size:12.5px; color:var(--muted);}
+  .contrast-box div{display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border);}
+  @media (max-width:820px){ .qn-meta{grid-template-columns:1fr;} .qq{font-size:22px;} }
+  .tag.ok{background:rgba(51,196,141,.15); color:var(--success);}
+  .tag.mute{background:var(--surface-2); color:var(--muted);}
+  .tag.warn{background:rgba(255,122,41,.15); color:var(--orange);}
+  .tag.info{background:rgba(255,255,255,.08); color:#D4D4D8;}
+  .person-sub{font-size:11.5px; color:var(--muted); margin-top:2px;}
+
+  /* UNIFIED APP SHELL */
+  .layout{display:grid; grid-template-columns:250px 1fr;}
+  .sidebar{background:var(--surface); border-right:1px solid var(--border); padding:22px 16px;
+    min-height:calc(100vh - 62px); position:sticky; top:62px; align-self:start; display:flex; flex-direction:column;}
+  .side-brand{display:flex; align-items:center; gap:10px; padding:0 8px 22px;}
+  .side-brand strong{font-size:15px;}
+  .side-brand small{display:block; color:var(--muted); font-size:11px;}
+  .side-nav{flex:1;}
+  .side-nav a{display:flex; align-items:center; gap:10px; color:var(--muted); text-decoration:none; cursor:pointer;
+    padding:10px 12px; border-radius:10px; font-size:14px; font-weight:500; margin-bottom:2px;}
+  .side-nav a.on{background:var(--surface-2); color:var(--text); }
+  .side-nav a:hover{color:var(--text);}
+  .side-account{border-top:1px solid var(--border); padding-top:14px; margin-top:14px;}
+  .side-account .em{font-size:13px; font-weight:600;}
+  .side-account .role{font-size:11.5px; color:var(--muted); margin-bottom:10px;}
+  .side-account button{width:100%; background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    padding:9px; border-radius:10px; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;}
+  .main{padding:28px 30px;}
+  .topline{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px; gap:16px; flex-wrap:wrap;}
+  .filters{display:flex; gap:6px;}
+  .filters button{background:var(--surface); border:1px solid var(--border); color:var(--muted); font-size:12.5px; padding:7px 12px; border-radius:8px; cursor:pointer;}
+  .filters button.on{color:var(--bg); background:var(--text); border-color:var(--text); font-weight:600;}
+
+  .stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px;}
+  .stat{padding:18px;}
+  .stat-top{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px;}
+  .stat .k{color:var(--muted); font-size:12.5px;}
+  .stat .v{font-size:28px; font-weight:600;}
+  .stat .small-note{font-size:11.5px; color:var(--muted); margin-top:4px;}
+  .ic{width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .ic-orange{background:var(--surface-2); color:var(--muted);}
+  .ic-purple{background:var(--surface-2); color:var(--muted);}
+  .grid-2{display:grid; grid-template-columns:1.5fr 1fr; gap:16px; margin-top:16px;}
+  .legend-item{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:13.5px;}
+  .legend-item:last-child{border-bottom:none;}
+  .dotc{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:8px;}
+  table.resp{width:100%; border-collapse:collapse; margin-top:14px;}
+  table.resp th{text-align:left; color:var(--muted); font-size:12px; font-weight:500; padding:8px 10px; border-bottom:1px solid var(--border);}
+  table.resp td{padding:12px 10px; border-bottom:1px solid var(--border); font-size:13.5px;}
+  .tag{padding:3px 9px; border-radius:20px; font-size:11.5px; font-weight:600;}
+  .tag.orange{background:var(--surface-2); color:var(--text);}
+  .tag.purple{background:rgba(255,255,255,.08); color:#D4D4D8;}
+  select.mini{background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:5px 8px; font-size:12px;}
+
+  .insight-card{border-left:2px solid #3F3F46; padding:14px 16px; background:var(--surface-2); border-radius:10px; margin-bottom:10px;}
+  .ins-title{font-weight:600; font-size:14px; margin-bottom:8px;}
+  .ins-row{font-size:13px; line-height:1.5; margin-bottom:5px; color:var(--text);}
+  .ins-row:last-child{margin-bottom:0;}
+  .ins-tag{display:inline-block; font-size:10.5px; font-weight:600; color:var(--text); background:var(--surface); padding:2px 7px; border-radius:5px; margin-right:8px; vertical-align:1px;}
+  .ins-tag-muted{color:var(--muted); background:var(--surface);}
+  .ins-tag-rec{color:#D4D4D8; background:rgba(255,255,255,.08);}
+
+  /* ADMIN builder */
+  .admin-tabs{display:flex; gap:8px; margin-bottom:20px;}
+  .admin-tabs button{background:var(--surface); border:1px solid var(--border); color:var(--muted); font-size:13px; font-weight:600; padding:9px 16px; border-radius:10px; cursor:pointer;}
+  .admin-tabs button.on{background:var(--surface-2); color:var(--text); border-color:var(--purple);}
+  .section-h{font-size:13px; color:var(--muted); font-weight:500; margin:22px 0 10px;}
+
+  .admin-sub{display:none;}
+  .admin-sub.active{display:block;}
+  .chpanel-body{display:none;}
+  .chpanel-body.active{display:block;}
+  .lpanel-body{display:none;}
+  .lpanel-body.active{display:block;}
+  .ppanel-body{display:none;}
+  .ppanel-body.active{display:block;}
+  .builder-grid{display:grid; grid-template-columns:1.3fr 1fr; gap:18px;}
+  .q-item{border:1px solid var(--border); border-radius:12px; background:var(--surface-2); margin-bottom:10px; padding:14px;}
+  .q-item-head{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .q-num{width:24px; height:24px; border-radius:50%; background:var(--surface); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--muted); flex-shrink:0;}
+  .q-item-head input[type=text]{flex:1; background:transparent; border:none; border-bottom:1px solid var(--border);
+    color:var(--text); font-size:14.5px; font-weight:600; padding:6px 2px; outline:none;}
+  .q-item-head input[type=text]:focus{border-bottom-color:var(--orange);}
+  .q-item-row2{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .q-item-row2 label{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px;}
+  .q-item select{background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:6px 8px; font-size:12.5px;}
+  .icon-btn{width:30px;height:30px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--muted);
+    display:flex;align-items:center;justify-content:center;cursor:pointer; flex-shrink:0;}
+  .icon-btn:hover{color:var(--text); border-color:var(--purple);}
+  .opt-input{width:100%; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text);
+    font-size:12.5px; padding:7px 9px; margin-top:8px; outline:none;}
+  .q-item-footer{display:flex; align-items:center; justify-content:space-between; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);}
+  .req-toggle{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); cursor:pointer;}
+  .toggle{width:36px; height:21px; border-radius:20px; background:var(--border); position:relative; flex-shrink:0;}
+  .toggle.on{background:var(--orange);}
+  .toggle i{position:absolute; top:2px; left:2px; width:17px; height:17px; background:#fff; border-radius:50%; transition:left .15s;}
+  .toggle.on i{left:17px;}
+  .q-actions{display:flex; gap:6px;}
+  .preview-phone{position:sticky; top:80px;}
+  .appearance-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; max-width:640px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:12.5px; color:var(--muted); margin-bottom:6px;}
+  .field input[type=text]{width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:10px;
+    color:var(--text); padding:10px 12px; font-size:13.5px; outline:none;}
+  .field input[type=color]{width:52px; height:36px; border:1px solid var(--border); border-radius:8px; background:none; cursor:pointer;}
+  .color-row{display:flex; align-items:center; gap:10px;}
+  .logo-upload{display:flex; align-items:center; gap:12px;}
+  .logo-upload img{width:44px; height:44px; border-radius:10px; object-fit:cover; background:var(--surface-2);}
+
+  /* unsaved-changes bar */
+  .save-bar{display:none; align-items:center; gap:12px; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:12px; padding:12px 16px; margin-bottom:18px; font-size:13px;}
+  .save-bar.show{display:flex;}
+  .save-bar .dot-warn{width:8px; height:8px; border-radius:50%; background:var(--orange); flex-shrink:0;}
+  .save-bar span{flex:1;}
+
+  /* LEADERS / DISTRIBUTION / LEADER AREA */
+  .two-col{display:grid; grid-template-columns:1.3fr 1fr; gap:16px;}
+  .form-card input, .form-card select{width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:10px;
+    color:var(--text); padding:11px 12px; font-size:13.5px; outline:none; margin-bottom:10px;}
+  .leader-row{display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border); font-size:13.5px; gap:10px;}
+  .leader-row:last-child{border-bottom:none;}
+  .leader-avatar{width:36px; height:36px; border-radius:50%; object-fit:cover; background:var(--surface); flex-shrink:0; display:flex; align-items:center; justify-content:center; color:var(--muted);}
+  .leader-row .nm{font-weight:600;}
+  .leader-row .mn{color:var(--muted); font-size:12px;}
+  .rule-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px;}
+  .row-flex{display:flex; align-items:center; gap:10px; flex:1;}
+  .age-inputs{display:flex; gap:8px;}
+  .profile-card{display:flex; align-items:center; gap:16px; margin-bottom:18px;}
+  .profile-card .leader-avatar{width:64px; height:64px;}
+  .leader-select{max-width:320px; margin-bottom:20px;}
+
+  @media (max-width:820px){
+    .layout{grid-template-columns:1fr;}
+    .sidebar{display:none;}
+    .stat-grid{grid-template-columns:repeat(2,1fr);}
+    .grid-2{grid-template-columns:1fr;}
+    .builder-grid{grid-template-columns:1fr;}
+    .appearance-grid{grid-template-columns:1fr;}
+    .two-col{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="meta-bar">
+  <div class="meta-brand">
+    <svg width="22" height="22" viewBox="0 0 100 100" fill="none"><path d="M30 20 L60 20 C72 20 80 30 80 42 C80 54 70 62 58 62 L44 62 L44 72 L30 88 L30 62 Z" fill="url(#gm)"/><defs><linearGradient id="gm" x1="30" y1="20" x2="80" y2="88"><stop offset="0" stop-color="#7C3AED"/><stop offset="1" stop-color="#FF7A29"/></linearGradient></defs></svg>
+    <span>Poundix — Protótipo v5</span>
+  </div>
+  <div class="switcher" id="switcher">
+    <button data-view="form" class="active">Questionário do visitante</button>
+    <button data-view="servir">Questionário Quero servir</button>
+    <button data-view="adm">Painel do ADM</button>
+    <button data-view="pastor">Painel do Pastor</button>
+    <button data-view="leaderarea">Área do líder</button>
+    <button data-view="global">Painel PoundiX</button>
+  </div>
+</div>
+
+<!-- ============ VIEW 1: QUESTIONÁRIO PÚBLICO (visitor) ============ -->
+<section id="view-form" class="view qv qtheme active">
+  <div class="qshell">
+    <header class="qhead" id="publicLogoBlock"></header>
+    <main class="qmain" id="publicQuestions" aria-live="polite"></main>
+  </div>
+</section>
+
+<!-- ============ VIEW 1B: QUESTIONÁRIO QUERO SERVIR (ministry_service) — mesmo motor ============ -->
+<section id="view-servir" class="view qv qtheme">
+  <div class="qshell">
+    <header class="qhead" id="servirLogoBlock"></header>
+    <main class="qmain" id="servirBody" aria-live="polite"></main>
+  </div>
+</section>
+
+<!-- ============ VIEW 2: PAINEL DA IGREJA ============ -->
+<section id="view-adm" class="view">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="side-brand">
+        <svg width="26" height="26" viewBox="0 0 100 100" fill="none"><path d="M30 20 L60 20 C72 20 80 30 80 42 C80 54 70 62 58 62 L44 62 L44 72 L30 88 L30 62 Z" fill="url(#gd)"/><defs><linearGradient id="gd" x1="30" y1="20" x2="80" y2="88"><stop offset="0" stop-color="#7C3AED"/><stop offset="1" stop-color="#FF7A29"/></linearGradient></defs></svg>
+        <div><strong id="sideName">Vida Nova</strong><small>Painel do ADM</small></div>
+      </div>
+      <nav class="side-nav">
+        <a class="chpanel on" data-panel="admin" onclick="showAdmPanel('admin')" data-icon="edit"> Questionário</a>
+        <a class="chpanel" data-panel="leaders" onclick="showAdmPanel('leaders')" data-icon="shield"> Líderes e ministérios</a>
+        <a class="chpanel" data-panel="cells" onclick="showAdmPanel('cells')" data-icon="home"> Células</a>
+        <a class="chpanel" data-panel="distribution" onclick="showAdmPanel('distribution')" data-icon="shuffle"> Distribuição</a>
+        <a class="chpanel" data-panel="visitors" onclick="showAdmPanel('visitors')" data-icon="users"> Visitantes</a>
+        <a class="chpanel" data-panel="interests" onclick="showAdmPanel('interests')" data-icon="user-plus"> Interesse em servir</a>
+        <a class="chpanel" data-panel="messages" onclick="showAdmPanel('messages')" data-icon="mail"> Mensagens</a>
+        <a class="chpanel" data-panel="agenda" onclick="showAdmPanel('agenda')" data-icon="clock"> Serviços/horários</a>
+        <a class="chpanel" data-panel="settings" onclick="showAdmPanel('settings')" data-icon="settings"> Configurações</a>
+      </nav>
+      <div class="side-account">
+        <div class="em">poundix1@gmail.com</div>
+        <div class="role">Administrador</div>
+        <button><span class="ico" data-icon="logout"></span> Sair</button>
+      </div>
+    </aside>
+    <main class="main">
+
+      <div class="chpanel-body" id="cp-agenda">
+        <div class="topline"><div><p class="eyebrow">Agenda</p><h1 class="title">Cultos e eventos</h1></div></div>
+        <p style="color:var(--muted); font-size:13px; margin:-14px 0 16px;">As métricas de dia e horário do Painel do Pastor usam só o que estiver cadastrado aqui.</p>
+        <div class="two-col">
+          <div class="card form-card">
+            <h3 style="margin:0 0 14px; font-size:15px;">Tipos de culto/evento</h3>
+            <input type="text" id="stName" placeholder="Nome (ex.: Culto, Juventude)">
+            <button class="btn btn-primary" style="width:100%;" onclick="addServiceType()"><span class="ico" data-icon="plus"></span> Adicionar tipo</button>
+            <div id="serviceTypesList" style="margin-top:14px;"></div>
+          </div>
+          <div class="card form-card">
+            <h3 style="margin:0 0 14px; font-size:15px;">Novo culto/evento</h3>
+            <select id="svDay">
+              <option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option>
+            </select>
+            <input type="time" id="svTime">
+            <select id="svType"></select>
+            <button class="btn btn-primary" style="width:100%;" onclick="addChurchService()"><span class="ico" data-icon="plus"></span> Cadastrar</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;"><h3 style="margin:0 0 10px; font-size:15px;">Cultos cadastrados</h3><div id="servicesList"></div></div>
+      </div>
+
+      <div class="chpanel-body" id="cp-leaders">
+
+        <div class="topline"><div><p class="eyebrow">Líderes e ministérios</p><h1 class="title">Líderes de acompanhamento e de ministério</h1></div></div>
+        <div class="two-col">
+          <div class="card form-card">
+            <h3 style="margin:0 0 14px; font-size:15px;">Novo líder</h3>
+            <input type="text" id="ldName" placeholder="Nome completo">
+            <div class="logo-upload" style="margin-bottom:10px;">
+              <img id="ldPhotoPreview" class="leader-avatar" src="">
+              <input type="file" accept="image/*" onchange="handleLeaderPhoto(event)">
+            </div>
+            <input type="text" id="ldEmail" placeholder="E-mail">
+            <input type="text" id="ldWhats" placeholder="WhatsApp">
+            <select id="ldType">
+              <option value="ministerio">Líder de ministério</option>
+              <option value="celula">Líder de célula</option>
+              <option value="acompanhamento">Líder de acompanhamento</option>
+              <option value="outro">Outro responsável</option>
+            </select>
+            <input type="text" id="ldMinistry" placeholder="Ministério(s) — separados por ; (opcional)">
+            <input type="text" id="ldRole" placeholder="Função (ex.: Líder, Coordenador)">
+            <div class="age-inputs">
+              <input type="text" id="ldAgeMin" placeholder="Idade mín. (opcional)">
+              <input type="text" id="ldAgeMax" placeholder="Idade máx. (opcional)">
+            </div>
+            <select id="ldResp">
+              <option value="principal">Responsável principal</option>
+              <option value="secundario">Responsável secundário</option>
+            </select>
+            <button class="btn btn-primary" style="width:100%;" onclick="addLeader()"><span class="ico" data-icon="plus"></span> Cadastrar líder</button>
+          </div>
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Equipe</h3><div id="leadersList"></div></div>
+        </div>
+      </div>
+
+      <div class="chpanel-body" id="cp-cells">
+        <div class="topline"><div><p class="eyebrow">Células</p><h1 class="title">Células da igreja</h1></div></div>
+        <div class="two-col">
+          <div class="card form-card">
+            <h3 style="margin:0 0 14px; font-size:15px;">Nova célula</h3>
+            <input type="text" id="cName" placeholder="Nome da célula">
+            <p style="color:var(--muted); font-size:12px; margin:0 0 6px;">Líder(es)</p>
+            <div class="inline-choices" id="cLeaders" style="margin-bottom:12px;"></div>
+            <select id="cDay">
+              <option value="">Dia da semana</option>
+              <option>Domingo</option><option>Segunda</option><option>Terça</option><option>Quarta</option><option>Quinta</option><option>Sexta</option><option>Sábado</option>
+            </select>
+            <input type="time" id="cTime">
+            <input type="text" id="cRegion" placeholder="Região/bairro (opcional)">
+            <div class="age-inputs">
+              <input type="text" id="cAgeMin" placeholder="Idade mín. (opcional)">
+              <input type="text" id="cAgeMax" placeholder="Idade máx. (opcional)">
+            </div>
+            <select id="cStatus"><option value="active">Ativa</option><option value="inactive">Inativa</option></select>
+            <button class="btn btn-primary" style="width:100%;" onclick="addCell()"><span class="ico" data-icon="plus"></span> Cadastrar célula</button>
+          </div>
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Células cadastradas</h3><div id="cellsList"></div></div>
+        </div>
+      </div>
+
+      <div class="chpanel-body" id="cp-distribution">
+        <div class="topline"><div><p class="eyebrow">Distribuição</p><h1 class="title">Encaminhamento automático</h1></div></div>
+        <div class="filters" style="margin-bottom:16px;">
+          <button id="dtab-visitante" class="on" onclick="setDistTab('visitante')">Acompanhamento de visitantes</button>
+          <button id="dtab-servir" onclick="setDistTab('servir')">Interesse em ministérios</button>
+        </div>
+
+        <div id="dist-visitante">
+          <p style="color:var(--muted); font-size:13px; margin:0 0 16px;">Cada visitante tem um único líder de acompanhamento. As regras são avaliadas de cima para baixo: o primeiro líder encontrado assume e os demais ficam registrados como reserva. Sem regra correspondente, o visitante vai para o líder de acompanhamento principal.</p>
+          <div class="card" style="margin-bottom:16px;">
+            <h3 style="margin:0 0 6px; font-size:15px;">Regras automáticas</h3>
+            <div class="rule-row"><span>Interesse em célula segue o fluxo de células</span><label class="req-toggle" onclick="toggleDist('autoCell')"><span class="toggle" id="tgCell"><i></i></span></label></div>
+          </div>
+          <div class="two-col">
+            <div class="card form-card">
+              <h3 style="margin:0 0 14px; font-size:15px;">Nova regra</h3>
+              <p style="color:var(--muted); font-size:12px; margin:0 0 6px;">SE (todas as condições preenchidas precisam ser verdadeiras)</p>
+              <div class="age-inputs">
+                <input type="text" id="ruleMin" placeholder="Idade mínima">
+                <input type="text" id="ruleMax" placeholder="Idade máxima">
+              </div>
+              <select id="ruleCell"><option value="">Interesse em célula: tanto faz</option><option value="sim">Interesse em célula: Sim</option></select>
+              <select id="ruleQ" onchange="fillRuleValues()"></select>
+              <select id="ruleQVal"></select>
+              <p style="color:var(--muted); font-size:12px; margin:6px 0 6px;">ENTÃO</p>
+              <select id="ruleKind" onchange="fillRuleTarget()">
+                <option value="lider">Atribuir ao líder de acompanhamento</option>
+                <option value="celula">Atribuir a célula</option>
+              </select>
+              <select id="ruleTarget"></select>
+              <button class="btn btn-primary" style="width:100%;" onclick="addRule()"><span class="ico" data-icon="plus"></span> Criar regra</button>
+            </div>
+            <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Regras e prioridades</h3><div id="rulesList"></div>
+              <button class="btn btn-ghost" style="margin-top:12px;" onclick="reapplyRules()">Reaplicar aos visitantes sem responsável</button></div>
+          </div>
+          <div class="grid-2">
+            <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Acompanhamentos por líder</h3><div id="distStats"></div></div>
+            <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Interessados por célula</h3><div id="distCells"></div></div>
+          </div>
+        </div>
+
+        <div id="dist-servir" style="display:none;">
+          <p style="color:var(--muted); font-size:13px; margin:0 0 16px;">Cada interesse em servir vai para o líder do ministério escolhido. Esse encaminhamento é independente do acompanhamento do visitante.</p>
+          <div class="card" style="margin-bottom:16px;">
+            <h3 style="margin:0 0 6px; font-size:15px;">Regras automáticas</h3>
+            <div class="rule-row"><span>Encaminhar o interesse ao líder do ministério</span><label class="req-toggle" onclick="toggleDist('autoMinistry')"><span class="toggle" id="tgMin"><i></i></span></label></div>
+          </div>
+          <div class="card form-card" style="margin-bottom:16px;">
+            <h3 style="margin:0 0 10px; font-size:15px;">Ministérios e líderes responsáveis</h3>
+            <div id="ministryList"></div>
+            <input type="text" id="ministryNew" placeholder="Novo ministério" style="margin-top:12px;">
+            <button class="btn btn-ghost" onclick="addMinistry()"><span class="ico" data-icon="plus"></span> Adicionar ministério</button>
+          </div>
+          <div class="two-col">
+            <div class="card form-card">
+              <h3 style="margin:0 0 14px; font-size:15px;">Nova regra de encaminhamento</h3>
+              <p style="color:var(--muted); font-size:12px; margin:0 0 6px;">SE o interesse for em</p>
+              <select id="srMinistry"></select>
+              <div class="age-inputs">
+                <input type="text" id="srMin" placeholder="Idade mínima">
+                <input type="text" id="srMax" placeholder="Idade máxima">
+              </div>
+              <p style="color:var(--muted); font-size:12px; margin:6px 0 6px;">ENTÃO encaminhar ao líder</p>
+              <select id="srLeader"></select>
+              <button class="btn btn-primary" style="width:100%;" onclick="addServirRule()"><span class="ico" data-icon="plus"></span> Criar regra</button>
+            </div>
+            <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Regras e prioridades</h3><div id="srRulesList"></div>
+              <button class="btn btn-ghost" style="margin-top:12px;" onclick="reapplyInterests()">Encaminhar interesses sem responsável</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chpanel-body" id="cp-visitors">
+        <div class="topline"><div><p class="eyebrow">Operação</p><h1 class="title">Visitantes</h1></div></div>
+        <div class="card"><div id="visitorsListAdm"></div></div>
+      </div>
+
+      <div class="chpanel-body" id="cp-interests">
+        <div class="topline"><div><p class="eyebrow">Operação</p><h1 class="title">Interesse em servir</h1></div></div>
+        <div class="card"><div id="interestsListAdm"></div></div>
+      </div>
+
+      <div class="chpanel-body" id="cp-messages">
+        <div class="topline"><div><p class="eyebrow">Mensagens</p><h1 class="title">Mensagem automática</h1></div></div>
+        <div class="card">
+          <div class="field"><label>Enviada ao visitante após o preenchimento</label>
+            <input type="text" id="apMsgAuto" value="Olá! Obrigado por visitar nossa igreja. Foi uma alegria receber você. Em breve, alguém da nossa equipe entrará em contato." style="width:100%; max-width:560px;">
+          </div>
+          <p style="color:var(--muted); font-size:12.5px;">Envio automático via WhatsApp ainda não conectado nesta etapa.</p>
+        </div>
+      </div>
+
+      <div class="chpanel-body active" id="cp-admin">
+        <div class="topline"><div><p class="eyebrow">Painel de administrador</p><h1 class="title">Editor dos questionários</h1></div>
+          <button class="btn btn-ghost" onclick="previewPublished()">Ver versão publicada</button>
+        </div>
+        <div class="save-bar" id="saveBar">
+          <span class="ico" data-icon="alert-circle"></span>
+          <span>Alterações pendentes. Elas só valem para os questionários públicos depois de salvar.</span>
+          <button class="btn btn-ghost" onclick="discardDraft()">Descartar</button>
+          <button class="btn btn-primary" onclick="saveDraft()"><span class="ico" data-icon="check"></span> Salvar</button>
+        </div>
+        <div class="qn-switch" id="qnSwitch">
+          <button class="on" data-qn="visitor" onclick="setEditQn('visitor')">Visitante</button>
+          <button data-qn="servir" onclick="setEditQn('servir')">Quero servir</button>
+        </div>
+        <p class="eyebrow" id="qnInfo"></p>
+        <div class="admin-tabs">
+          <button class="on" data-tab="questions" onclick="showAdminTab('questions')">Perguntas</button>
+          <button data-tab="appearance" onclick="showAdminTab('appearance')">Aparência</button>
+        </div>
+        <div class="admin-sub active" id="tab-questions">
+          <div class="card qn-meta">
+            <div class="field"><label>Título</label><input type="text" id="qnTitle" oninput="updateMeta('title',this.value)"></div>
+            <div class="field"><label>Descrição</label><input type="text" id="qnDesc" oninput="updateMeta('description',this.value)"></div>
+            <label class="req-toggle" onclick="toggleActive()"><span class="toggle" id="qnActive"><i></i></span> Ativo</label>
+          </div>
+          <div class="topline" style="margin-bottom:16px;"><div></div><button class="btn btn-primary" onclick="addQuestion()"><span class="ico" data-icon="plus"></span> Adicionar pergunta</button></div>
+          <div class="builder-grid">
+            <div id="builderList"></div>
+            <div class="preview-phone"><p class="eyebrow" style="margin-bottom:12px;">Pré-visualização do rascunho</p><div id="builderPreview"></div></div>
+          </div>
+        </div>
+        <div class="admin-sub" id="tab-appearance">
+          <div class="builder-grid" style="grid-template-columns:minmax(0,1fr) 380px;">
+            <div>
+              <div class="appearance-grid" style="max-width:none;">
+                <div class="field"><label>Nome da igreja <span style="opacity:.7">(vale para os dois questionários)</span></label><input type="text" id="apChurchName" oninput="updateDraftAppearance()"></div>
+                <div class="field"><label>Mensagem final (deste questionário)</label><input type="text" id="apFinal" oninput="updateDraftAppearance()"></div>
+                <div class="field" style="grid-column:1/-1;"><label>Logo da igreja — somente SVG</label>
+                  <div class="logo-upload"><div class="logo-prev" id="apLogoPreview"></div>
+                    <div><input type="file" id="apLogoFile" accept=".svg,image/svg+xml" onchange="handleLogoUpload(event)"><div style="margin-top:8px; display:flex; gap:8px; align-items:center;"><button class="btn btn-ghost" onclick="removeLogo()" style="padding:7px 12px; font-size:12.5px;">Remover logo</button><span id="apLogoMsg" style="font-size:12.5px; color:var(--muted);"></span></div></div></div>
+                </div>
+              </div>
+              <h3 class="section-h" style="margin-top:8px;">Cores do questionário <span style="opacity:.7">(deste questionário)</span></h3>
+              <div class="appearance-grid" id="apColors" style="max-width:none;"></div>
+              <div class="contrast-box" id="apContrast"></div>
+              <div style="margin-top:14px;"><button class="btn btn-ghost" onclick="copyColors()" id="apCopyBtn"></button></div>
+            </div>
+            <div class="preview-phone"><p class="eyebrow" style="margin-bottom:12px;">Pré-visualização em tempo real</p><div id="apPreview"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chpanel-body" id="cp-settings">
+        <div class="topline"><div><p class="eyebrow">Configurações</p><h1 class="title">Dados da igreja</h1></div></div>
+        <div class="card" style="max-width:480px;">
+          <p style="font-size:13.5px; margin:0 0 6px;">Nome: <b id="stChurchNameDisplay"></b></p>
+          <p style="color:var(--muted); font-size:12.5px;">Plano atual: <span class="tag orange">Pro</span></p>
+          <p style="color:var(--muted); font-size:12px; margin-top:10px;">Nome e identidade visual são editados em Editor do questionário → Aparência.</p>
+        </div>
+        <div class="card" style="max-width:480px; margin-top:16px;">
+          <h3 style="margin:0 0 10px; font-size:15px;">Questionários públicos</h3>
+          <div class="legend-item"><span>QR Visitante<br><small style="color:var(--muted)">/questionario/visitante</small></span><a class="btn btn-ghost" style="padding:7px 12px; font-size:12.5px; text-decoration:none;" href="#visitante" target="_blank" rel="noopener">Abrir entrada</a></div>
+          <div class="legend-item"><span>QR Quero servir<br><small style="color:var(--muted)">/questionario/servir</small></span><a class="btn btn-ghost" style="padding:7px 12px; font-size:12.5px; text-decoration:none;" href="#servir" target="_blank" rel="noopener">Abrir entrada</a></div>
+          <p style="color:var(--muted); font-size:12px; margin:10px 0 0;">As duas entradas são independentes: abrem direto no questionário, sem painel. A geração das imagens de QR Code entra com o backend.</p>
+          <div style="margin-top:14px;"><button class="btn btn-ghost" onclick="exportConfig()">Exportar configuração (JSON)</button></div>
+        </div>
+        <div class="card" style="max-width:480px; margin-top:16px;">
+          <h3 style="margin:0 0 6px; font-size:15px;">Dados de demonstração</h3>
+          <p style="color:var(--muted); font-size:12.5px; margin:0 0 12px;">Gera líderes, células e cerca de 45 visitantes de exemplo espalhados pelos últimos 60 dias para testar o dashboard.</p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="seedDemo()">Gerar dados de exemplo</button>
+            <button class="btn btn-ghost" onclick="clearResponses()">Apagar visitantes</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</section>
+
+<!-- ============ VIEW: PAINEL DO PASTOR ============ -->
+<section id="view-pastor" class="view">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="side-brand">
+        <svg width="26" height="26" viewBox="0 0 100 100" fill="none"><path d="M30 20 L60 20 C72 20 80 30 80 42 C80 54 70 62 58 62 L44 62 L44 72 L30 88 L30 62 Z" fill="url(#gp)"/><defs><linearGradient id="gp" x1="30" y1="20" x2="80" y2="88"><stop offset="0" stop-color="#7C3AED"/><stop offset="1" stop-color="#FF7A29"/></linearGradient></defs></svg>
+        <div><strong>Vida Nova</strong><small>Painel do Pastor</small></div>
+      </div>
+      <nav class="side-nav">
+        <a class="ppanel on" data-panel="dashboard" onclick="showPastorPanel('dashboard')" data-icon="layout"> Dashboard</a>
+        <a class="ppanel" data-panel="visitors" onclick="showPastorPanel('visitors')" data-icon="users"> Visitantes</a>
+        <a class="ppanel" data-panel="insights" onclick="showPastorPanel('insights')" data-icon="activity"> Insights</a>
+        <a class="ppanel" data-panel="reports" onclick="showPastorPanel('reports')" data-icon="bars"> Relatórios</a>
+      </nav>
+      <div class="side-account">
+        <div class="em">pastor@poundix.demo</div>
+        <div class="role">Pastor</div>
+        <button><span class="ico" data-icon="logout"></span> Sair</button>
+      </div>
+    </aside>
+    <main class="main">
+
+      <div class="ppanel-body active" id="pp-dashboard">
+        <div class="topline">
+          <div><p class="eyebrow">Painel do Pastor</p><h1 class="title">Visão geral</h1></div>
+          <div class="filters" id="periodFilters">
+            <button data-days="7" onclick="setPeriod(7)">7 dias</button>
+            <button data-days="30" class="on" onclick="setPeriod(30)">30 dias</button>
+            <button data-days="90" onclick="setPeriod(90)">90 dias</button>
+            <button data-days="0" onclick="setPeriod(0)">Tudo</button>
+          </div>
+        </div>
+
+        <h3 class="section-h" style="margin:0 0 12px; font-size:12.5px; letter-spacing:.8px; color:var(--muted);">ACOMPANHAMENTO DE VISITANTES</h3>
+        <div class="stat-grid" id="pVisStats"></div>
+        <div class="grid-2" style="margin-top:16px;">
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Situação dos visitantes</h3><div id="pVisSituation"></div></div>
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Últimos visitantes</h3><div id="pVisTable"></div></div>
+        </div>
+
+        <h3 class="section-h" style="margin:36px 0 12px; font-size:12.5px; letter-spacing:.8px; color:var(--muted);">INTERESSE EM SERVIR</h3>
+        <div class="stat-grid" id="pSrvStats"></div>
+        <div class="grid-2" style="margin-top:16px;">
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Situação dos interesses</h3><div id="pSrvSituation"></div></div>
+          <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Últimos interesses</h3><div id="pSrvTable"></div></div>
+        </div>
+        <div class="card" style="margin-top:16px;"><h3 style="margin:0 0 10px; font-size:15px;">Por ministério</h3><div id="pSrvByMin"></div></div>
+      </div>
+
+      <div class="ppanel-body" id="pp-visitors">
+        <div class="topline"><div><p class="eyebrow">Visitantes</p><h1 class="title">Todos os visitantes</h1></div></div>
+        <div id="visitorsListPastor"></div>
+      </div>
+
+      <div class="ppanel-body" id="pp-insights">
+        <div class="topline">
+          <div><p class="eyebrow">Insights</p><h1 class="title">Análise inteligente</h1></div>
+          <div class="filters" id="insPeriodFilters">
+            <button data-days="7" onclick="setInsPeriod(7)">7 dias</button>
+            <button data-days="30" class="on" onclick="setInsPeriod(30)">30 dias</button>
+            <button data-days="90" onclick="setInsPeriod(90)">90 dias</button>
+            <button data-days="0" onclick="setInsPeriod(0)">Tudo</button>
+          </div>
+        </div>
+        <p style="color:var(--muted); font-size:12.5px; margin:-14px 0 16px;">Calculados a partir de dados agregados e anônimos do período selecionado, sem nomes nem contatos.</p>
+        <div id="insightsBox"></div>
+      </div>
+
+      <div class="ppanel-body" id="pp-reports">
+        <div class="topline">
+          <div><p class="eyebrow">Relatórios</p><h1 class="title">Análise histórica</h1></div>
+          <div class="filters" id="repPeriodFilters">
+            <button data-days="7" onclick="setRepPeriod(7)">7 dias</button>
+            <button data-days="30" class="on" onclick="setRepPeriod(30)">30 dias</button>
+            <button data-days="90" onclick="setRepPeriod(90)">90 dias</button>
+            <button data-days="0" onclick="setRepPeriod(0)">Tudo</button>
+          </div>
+        </div>
+        <div class="admin-tabs" id="reportTabs"></div>
+        <div id="reportBody"></div>
+      </div>
+
+    </main>
+  </div>
+</section>
+
+<!-- ============ VIEW 3: ÁREA DO LÍDER ============ -->
+<section id="view-leaderarea" class="view">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="side-brand">
+        <svg width="26" height="26" viewBox="0 0 100 100" fill="none"><path d="M30 20 L60 20 C72 20 80 30 80 42 C80 54 70 62 58 62 L44 62 L44 72 L30 88 L30 62 Z" fill="url(#gl)"/><defs><linearGradient id="gl" x1="30" y1="20" x2="80" y2="88"><stop offset="0" stop-color="#7C3AED"/><stop offset="1" stop-color="#FF7A29"/></linearGradient></defs></svg>
+        <div><strong>Área do líder</strong><small>Meus acompanhamentos</small></div>
+      </div>
+      <nav class="side-nav">
+        <a class="lpanel on" data-panel="ldash" onclick="showLeaderPanel('ldash')" data-icon="layout"> Dashboard</a>
+        <a class="lpanel" data-panel="lfollow" onclick="showLeaderPanel('lfollow')" data-icon="repeat"> Meus acompanhamentos</a>
+        <a class="lpanel" data-panel="lassigned" onclick="showLeaderPanel('lassigned')" data-icon="user-plus"> Contatos atribuídos</a>
+        <a class="lpanel" data-panel="lhistory" onclick="showLeaderPanel('lhistory')" data-icon="clock"> Histórico</a>
+        <a class="lpanel" data-panel="lprofile" onclick="showLeaderPanel('lprofile')" data-icon="shield"> Meu perfil</a>
+      </nav>
+    </aside>
+    <main class="main">
+      <div class="topline">
+        <div><p class="eyebrow">Área do líder</p><h1 class="title">Bem-vindo(a)</h1></div>
+        <select class="q-select leader-select" id="leaderViewSelect" onchange="renderLeaderArea()" style="max-width:260px;"></select>
+      </div>
+
+      <div class="lpanel-body active" id="lp-ldash">
+        <div class="stat-grid" id="leaderStats"></div>
+      </div>
+      <div class="lpanel-body" id="lp-lfollow">
+        <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Em acompanhamento</h3><div id="leaderFollowList"></div></div>
+      </div>
+      <div class="lpanel-body" id="lp-lassigned">
+        <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Novos contatos (pendente / contatado)</h3><div id="leaderAssignedList"></div></div>
+      </div>
+      <div class="lpanel-body" id="lp-lhistory">
+        <div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Concluídos, sem interesse ou não respondeu</h3><div id="leaderHistoryList"></div></div>
+      </div>
+      <div class="lpanel-body" id="lp-lprofile">
+        <div class="card" id="leaderProfileCard"></div>
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ============ VIEW 4: PAINEL GLOBAL POUNDIX ============ -->
+<section id="view-global" class="view">
+  <div style="padding:32px 20px 64px;">
+    <div style="max-width:1180px; margin:0 auto;">
+      <div class="topline">
+        <div><p class="eyebrow">Poundix Admin</p><h1 class="title">Visão geral do negócio</h1></div>
+        <button class="btn btn-primary" onclick="toggleChurchForm()"><span class="ico" data-icon="plus"></span> Cadastrar igreja</button>
+      </div>
+      <div class="card" id="churchForm" style="display:none; margin-bottom:16px;">
+        <h3 style="margin:0 0 14px; font-size:15px;">Nova igreja</h3>
+        <div class="appearance-grid" style="max-width:none;">
+          <div class="field"><label>Nome da igreja *</label><input type="text" id="ncName"></div>
+          <div class="field"><label>E-mail do administrador *</label><input type="email" id="ncEmail"></div>
+          <div class="field"><label>Valor cobrado (R$/mês) *</label><input type="number" id="ncValor" min="0" step="1"></div>
+          <div class="field"><label>Plano (opcional)</label><input type="text" id="ncPlano" placeholder="ex.: 100 a 300 visitantes"></div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-primary" onclick="addChurch()">Salvar igreja</button>
+          <button class="btn btn-ghost" onclick="toggleChurchForm()">Cancelar</button>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="card stat"><div class="stat-top"><div class="k">MRR (receita recorrente)</div><div class="ic ic-orange"><span class="ico" data-icon="dollar"></span></div></div><div class="v" id="gMrr">R$ 0</div><div class="small-note" id="gMrrNote"></div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Igrejas ativas</div><div class="ic ic-purple"><span class="ico" data-icon="users"></span></div></div><div class="v" id="gActive">0</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Novas igrejas (cadastradas)</div><div class="ic ic-orange"><span class="ico" data-icon="user-plus"></span></div></div><div class="v" id="gNew">0</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Churn (mês)</div><div class="ic ic-purple"><span class="ico" data-icon="trending-down"></span></div></div><div class="v">1</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Respostas coletadas (rede toda)</div><div class="ic ic-orange"><span class="ico" data-icon="activity"></span></div></div><div class="v" id="globalRespCount">0</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Média de respostas / igreja</div><div class="ic ic-purple"><span class="ico" data-icon="bars"></span></div></div><div class="v">86</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Igrejas em risco (baixo uso)</div><div class="ic ic-orange"><span class="ico" data-icon="alert-triangle"></span></div></div><div class="v">2</div><div class="small-note">sem respostas há 14+ dias</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Inadimplência</div><div class="ic ic-purple"><span class="ico" data-icon="alert-circle"></span></div></div><div class="v" id="gDelinq">0</div><div class="small-note" id="gDelinqNote"></div></div>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <h3 style="margin:0 0 10px; font-size:15px;">Distribuição por plano</h3>
+        <div id="gPlans"></div>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="resp" id="gTable"></table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ================= ÍCONES ================= */
+const ICONS = {
+  home:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  'user-plus':'<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>',
+  repeat:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+  'check-circle':'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+  check:'<polyline points="20 6 9 17 4 12"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/>',
+  'alert-triangle':'<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  'alert-circle':'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+  activity:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+  dollar:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  'trending-up':'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+  'trending-down':'<polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/>',
+  bars:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+  layout:'<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>',
+  shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  shuffle:'<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>',
+  mail:'<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/>',
+  edit:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  copy:'<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  'arrow-up':'<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>',
+  'arrow-down':'<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>',
+  logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>'
+};
+function ic(name,size=16){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">${ICONS[name]||''}</svg>`;
+}
+function paintStaticIcons(){
+  document.querySelectorAll('[data-icon]').forEach(el=>{
+    if(!el.dataset.painted){ el.insertAdjacentHTML('afterbegin', ic(el.dataset.icon,16)); el.dataset.painted='1'; }
+  });
+}
+
+/* ================= ESTADO ================= */
+const STATUS_LABELS = {pendente:'Pendente', contatado:'Contatado', acompanhamento:'Em acompanhamento',
+  encaminhado:'Encaminhado', concluido:'Concluído', sem_interesse:'Sem interesse', nao_respondeu:'Não respondeu'};
+const RANK = {pendente:0, nao_respondeu:1, sem_interesse:1, contatado:2, acompanhamento:3, encaminhado:4, concluido:5};
+/* v4: acompanhamento de visitantes e interesse em servir têm status independentes */
+const CHURCH_ID = 'c1';
+const VISITOR_STATUSES = ['pendente','contatado','acompanhamento','concluido','nao_respondeu'];
+const REAL_CONTACT = ['contatado','acompanhamento','concluido'];      // só estes definem first_contact_at do visitante
+const MIN_LABELS = {recebido:'Interesse recebido', encaminhado:'Encaminhado', contatado:'Contatado', em_processo:'Em processo', concluido:'Concluído', sem_interesse:'Sem interesse'};
+const MIN_STATUSES = Object.keys(MIN_LABELS);
+const MIN_CONTACT = ['contatado','em_processo','concluido'];          // só estes definem first_contact_at do interesse
+const DEFAULT_MINISTRIES = ['Louvor','Intercessão','Juventude','Dança','Comunicação','Kids'];
+const LATE_MS = 24*3600000;
+const V_TONE = {pendente:'warn', contatado:'info', acompanhamento:'info', concluido:'ok', nao_respondeu:'mute', encaminhado:'info', sem_interesse:'mute'};
+const M_TONE = {recebido:'warn', encaminhado:'mute', contatado:'info', em_processo:'info', concluido:'ok', sem_interesse:'mute'};
+const V_LEGACY = {encaminhado:'acompanhamento', sem_interesse:'nao_respondeu'};
+const M_LEGACY = {acompanhamento:'em_processo', nao_respondeu:'recebido'};
+const NONE_RE = /^(n[ãa]o tenho interesse|nenhum)/i;
+const LEADER_TYPES = {ministerio:'Líder de ministério', celula:'Líder de célula', acompanhamento:'Líder de acompanhamento', outro:'Outro responsável'};
+const WEEKDAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+const DEFAULT_STATE = {
+  appearance:{ churchName:'Igreja Vida Nova', title:'Questionário de visitante',
+    finalMessage:'Suas informações foram enviadas.',
+    logo_svg:null, background_color:'#FFFFFF', text_color:'#0A0A0B', secondary_text_color:'#6B6B76', button_color:'#0A0A0B', button_text_color:'#FFFFFF' },
+  questions:[
+    {id:'q1', type:'boolean', label:'É a sua primeira vez visitando nossa igreja?', required:true, options:[]},
+    {id:'q2', type:'single', label:'Você está procurando um lugar para congregar?', required:true, options:['Sim, estou procurando','Não, apenas visitando','Ainda não sei']},
+    {id:'q3', type:'short', label:'Qual o seu nome completo?', required:true, options:[]},
+    {id:'q4', type:'whatsapp', label:'WhatsApp para contato', required:true, options:[]},
+    {id:'q5', type:'age', label:'Qual a sua idade?', required:true, options:[]},
+    {id:'q6', type:'single', label:'Como você conheceu a igreja?', required:false, options:['Instagram','Google','Amigo/família','Evento','Indicação','Outro']},
+    {id:'q7', type:'multi', label:'Você tem interesse em algum ministério?', required:false, options:['Louvor','Intercessão','Juventude','Dança','Comunicação','Kids','Não tenho interesse no momento']},
+    {id:'q8', type:'cell', label:'Você gostaria de participar de uma célula?', required:false, options:[]},
+    {id:'q9', type:'boolean', label:'Gostaria de receber oração?', required:false, options:[]}
+  ],
+  responses:[], leaders:[], rules:[], cells:[], distSettings:{autoMinistry:true, autoCell:true},
+  serviceTypes:[{id:'st1',name:'Culto',active:true},{id:'st2',name:'Juventude',active:true}],
+  services:[
+    {id:'sv1', dayOfWeek:4, startTime:'20:00', serviceTypeId:'st1', active:true},
+    {id:'sv2', dayOfWeek:0, startTime:'10:00', serviceTypeId:'st1', active:true},
+    {id:'sv3', dayOfWeek:0, startTime:'19:00', serviceTypeId:'st1', active:true}
+  ],
+  churches:[
+    {id:'c1', name:'Igreja Vida Nova', email:'poundix1@gmail.com', plan:'Pro', valor:349, paid:true, resp:0, live:true, isNew:false, when:'Hoje'},
+    {id:'c2', name:'Comunidade Restauração', email:'', plan:'Essencial', valor:149, paid:true, resp:112, live:false, isNew:false, when:'Ontem'},
+    {id:'c3', name:'Igreja Videira Curitiba', email:'', plan:'Pro', valor:349, paid:true, resp:3, live:false, isNew:false, when:'16 dias atrás'},
+    {id:'c4', name:'Igreja Nova Aliança', email:'', plan:'Essencial', valor:149, paid:false, resp:0, live:false, isNew:false, when:'21 dias atrás'}
+  ]
+};
+const GATE_COND = {qid:'s1', value:'Sim'};
+DEFAULT_STATE.servir = {
+  appearance:{ finalMessage:'Um líder do ministério vai entrar em contato com você.' },
+  questions:[
+    {id:'s1', type:'boolean', label:'Quer fazer parte de algum ministério?', description:'', required:true, options:[], gate:true},
+    {id:'s2', type:'short', label:'Qual o seu nome?', description:'', required:true, options:[], identity:'name', cond:GATE_COND},
+    {id:'s3', type:'whatsapp', label:'Qual o seu WhatsApp?', description:'Um líder vai chamar você por aqui.', required:true, options:[], cond:GATE_COND},
+    {id:'s4', type:'age', label:'Qual a sua idade?', description:'', required:true, options:[], cond:GATE_COND},
+    {id:'s5', type:'ministries', label:'Onde você quer servir?', description:'Você pode escolher mais de um.', required:true, options:[], cond:GATE_COND}
+  ]
+};
+const DEFAULT_QMETA = {
+  visitor:{type:'visitor', title:'Questionário de visitante', description:'Coleta os dados de quem visita a igreja.', active:true, version:1},
+  servir:{type:'ministry_service', title:'Quero servir', description:'Registra o interesse em servir em um ministério.', active:true, version:1}
+};
+function mixHex(a,b,t){ const p=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16)); const x=p(a), y=p(b); return '#'+x.map((v,i)=>Math.round(v*t+y[i]*(1-t)).toString(16).padStart(2,'0')).join('').toUpperCase(); }
+let state;
+try{
+  const saved = (localStorage.getItem('poundix_state_v5')||localStorage.getItem('poundix_state_v4'));
+  if(saved){ state = JSON.parse(saved); }
+  else{
+    const old = localStorage.getItem('poundix_state_v3');
+    state = old ? JSON.parse(old) : JSON.parse(JSON.stringify(DEFAULT_STATE));
+    if(old) delete state.questions;
+  }
+}catch(e){ state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
+/* ===== v5: aparência com nomes de banco, cor do texto do botão independente, logo só SVG (idempotente) ===== */
+(function migrateV5(){
+  const raw = state.appearance||{}; const m = {...raw};
+  const hadOld = raw.bgColor!==undefined || raw.textColor!==undefined || raw.primary!==undefined;
+  if(raw.bgColor!==undefined && raw.background_color===undefined) m.background_color = raw.bgColor;
+  if(raw.textColor!==undefined && raw.text_color===undefined) m.text_color = raw.textColor;
+  if(raw.primary!==undefined && raw.button_color===undefined){ m.button_color = raw.primary; m.button_text_color = '#1A0D00'; }
+  if(hadOld && raw.secondary_text_color===undefined){ m.secondary_text_color = mixHex(m.text_color||'#F5F3F7', m.background_color||'#0D0B14', .62); }
+  if(raw.logo && raw.logo_svg===undefined && /^data:image\/svg\+xml/.test(raw.logo)){
+    try{ const b=raw.logo.split(',')[1]||''; m.logo_svg = /;base64/.test(raw.logo.split(',')[0]) ? atob(b) : decodeURIComponent(b); }catch(e){}
+  }
+  delete m.bgColor; delete m.textColor; delete m.primary; delete m.logo;
+  state.appearance = Object.assign({}, DEFAULT_STATE.appearance, m);
+  const dsv = DEFAULT_STATE.servir;
+  state.servir = state.servir || {};
+  state.servir.questions = (state.servir.questions && state.servir.questions.length) ? state.servir.questions : JSON.parse(JSON.stringify(dsv.questions));
+  state.servir.appearance = Object.assign({}, state.appearance, {finalMessage:dsv.appearance.finalMessage}, state.servir.appearance||{});
+  state.qmeta = state.qmeta || {};
+  ['visitor','servir'].forEach(t=>{ state.qmeta[t] = Object.assign({}, DEFAULT_QMETA[t], state.qmeta[t]||{}); });
+  state.questions.forEach(q=>{ if(q.description===undefined) q.description=''; });
+})();
+state.questions = state.questions && state.questions.length ? state.questions : JSON.parse(JSON.stringify(DEFAULT_STATE.questions));
+state.cells = state.cells || [];
+state.distSettings = Object.assign({autoMinistry:true, autoCell:true}, state.distSettings||{});
+state.churches = state.churches || JSON.parse(JSON.stringify(DEFAULT_STATE.churches));
+state.serviceTypes = state.serviceTypes || JSON.parse(JSON.stringify(DEFAULT_STATE.serviceTypes));
+state.services = state.services || JSON.parse(JSON.stringify(DEFAULT_STATE.services));
+state.leaders = (state.leaders||[]).map(l=>{
+  const ms = l.ministries || (l.ministry?[l.ministry]:[]);
+  return {photo:null, role:'Líder', ageMin:'', ageMax:'', responsavel:'principal', status:'active', ...l, ministries:ms, type: l.type || (ms.length?'ministerio':'acompanhamento')};
+});
+state.rules = (state.rules||[]).map(r=> r.conds ? r : {id:r.id, conds:{ageMin:r.min, ageMax:r.max}, action:{kind:'lider', ref:r.leaderId}});
+function hashKey(str){ let h=5381; for(let i=0;i<str.length;i++) h=((h<<5)+h+str.charCodeAt(i))|0; return 'v'+(h>>>0).toString(16); }
+function keyOfAnswers(answers){
+  const q = state.questions.find(q=>q.type==='whatsapp'); if(!q) return null;
+  const d = String(answers[q.id]||'').replace(/\D/g,'').slice(-11);
+  return d.length>=8 ? hashKey(d) : null;
+}
+state.responses = (state.responses||[]).map(r=>{
+  const status = RANK[r.status]!==undefined ? r.status : (r.status==='retornou'?'concluido':'pendente');
+  const out = {...r, status, history: r.history || [{status:'pendente', at:r.date}], firstContactAt: r.firstContactAt||null, firstResponseAt: r.firstResponseAt||null};
+  out.visitorKey = r.visitorKey!==undefined ? r.visitorKey : keyOfAnswers(r.answers||{});
+  out.assignments = r.assignments || (r.leaderId ? [{id:'a'+r.id, kind:'acompanhamento', target:'Acompanhamento', leaderId:r.leaderId, cellId:null, status, history:[{status:'pendente', at:r.date}]}] : []);
+  delete out.leaderId;
+  return out;
+});
+/* ===== v4: separação Acompanhamento de visitantes × Interesse em servir (idempotente) ===== */
+(function migrateV4(){
+  const oldQ = state.questions.find(q=>q.type==='multi' && /interesse|minist[ée]rio/i.test(q.label));
+  if(!Array.isArray(state.ministries)){
+    const fromQ = oldQ ? (oldQ.options||[]).filter(o=>!NONE_RE.test(o)) : [];
+    state.ministries = fromQ.length ? fromQ : [...DEFAULT_MINISTRIES];
+  }
+  if(oldQ) state.questions = state.questions.filter(q=>q!==oldQ);
+  state.serviceInterests = state.serviceInterests || [];
+  state.rules.forEach(r=>{ if(!r.scope) r.scope = ((r.action && r.action.kind==='ministerio') || (r.conds && r.conds.interest)) ? 'servir' : 'visitante'; });
+  state.rules = state.rules.filter(r=>!(r.scope==='servir' && r.action.kind==='ministerio'));
+  state.responses.forEach(r=>{
+    r.churchId = r.churchId || CHURCH_ID;
+    r.assignments = r.assignments || [];
+    r.assignments.filter(a=>a.kind==='ministerio').forEach(a=>{
+      const mp = s => s==='pendente' ? (a.leaderId?'encaminhado':'recebido') : (M_LEGACY[s]||s);
+      const hist = (a.history||[]).map(h=>({status:mp(h.status), at:h.at, by:a.leaderId||null}));
+      const first = hist.find(h=>MIN_CONTACT.includes(h.status));
+      state.serviceInterests.push({id:uid(), churchId:CHURCH_ID, visitorId:r.id, visitorKey:r.visitorKey||null, name:'', whatsapp:'', age:null,
+        ministry:a.target, leaderId:a.leaderId||null, status:mp(a.status), assignedAt:a.leaderId?r.date:null,
+        firstContactAt:first?first.at:null, contactedBy:first?(a.leaderId||null):null, completedAt:null, createdAt:r.date, source:'visitante', history:hist});
+    });
+    r.assignments = r.assignments.filter(a=>a.kind!=='ministerio');
+    let f = r.assignments.find(a=>a.kind==='acompanhamento');
+    if(!f){
+      const lid = defaultFollowLeader(ageOf(r));
+      f = newFollowup(r, lid?[lid]:[], r.date);
+      f.status = r.status;
+      f.history = (r.history||[{status:'pendente', at:r.date}]).map(h=>({status:h.status, at:h.at}));
+      delete f.firstContactAt; delete f.completedAt;
+      r.assignments.unshift(f);
+    }
+    f.churchId = f.churchId || CHURCH_ID;
+    f.candidateIds = f.candidateIds || (f.leaderId?[f.leaderId]:[]);
+    f.status = V_LEGACY[f.status] || f.status;
+    f.history = (f.history||[]).map(h=>({status:V_LEGACY[h.status]||h.status, at:h.at, by:h.by!==undefined?h.by:(f.leaderId||null)}));
+    if(f.firstContactAt===undefined){ const c = f.history.find(h=>REAL_CONTACT.includes(h.status)); f.firstContactAt = c?c.at:null; f.contactedBy = c?(f.leaderId||null):null; }
+    if(f.completedAt===undefined){ const d = f.history.find(h=>h.status==='concluido'); f.completedAt = d?d.at:null; }
+    if(f.assignedAt===undefined) f.assignedAt = f.leaderId ? r.date : null;
+    f.createdAt = f.createdAt || r.date;
+    syncVisitorFromFollowup(r);
+  });
+  state.serviceInterests.forEach(i=>{ i.churchId = i.churchId || CHURCH_ID; });
+})();
+
+function save(){ try{ localStorage.setItem('poundix_state_v5', JSON.stringify(state)); }catch(e){} }
+function uid(){ return 'id'+Math.random().toString(36).slice(2,9); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+/* ================= DRAFT (Editor dos questionários — botão Salvar explícito) ================= */
+const QN_TYPES = ['visitor','servir'];
+function makeDraft(){ return { questions:{visitor:clone(state.questions), servir:clone(state.servir.questions)},
+  appearance:{visitor:clone(state.appearance), servir:clone(state.servir.appearance)}, meta:clone(state.qmeta) }; }
+let draft = makeDraft();
+let editQn = 'visitor';
+let hasUnsavedChanges = false;
+const dq = ()=>draft.questions[editQn];
+const da = ()=>draft.appearance[editQn];
+function markDirty(){ hasUnsavedChanges = true; document.getElementById('saveBar').classList.add('show'); }
+function savedSnap(t){ return JSON.stringify([t==='servir'?state.servir.questions:state.questions, t==='servir'?state.servir.appearance:state.appearance, state.qmeta[t]]); }
+function draftSnap(t){ return JSON.stringify([draft.questions[t], draft.appearance[t], draft.meta[t]]); }
+function saveDraft(){
+  const changed = {}; QN_TYPES.forEach(t=>{ changed[t] = savedSnap(t)!==draftSnap(t); });
+  state.questions = clone(draft.questions.visitor); state.appearance = clone(draft.appearance.visitor);
+  state.servir.questions = clone(draft.questions.servir); state.servir.appearance = clone(draft.appearance.servir);
+  state.qmeta = clone(draft.meta);
+  QN_TYPES.forEach(t=>{ if(changed[t]) state.qmeta[t].version = (state.qmeta[t].version||1)+1; });
+  save();
+  draft = makeDraft(); hasUnsavedChanges = false;
+  document.getElementById('saveBar').classList.remove('show');
+  renderAll();
+}
+function discardDraft(){
+  draft = makeDraft(); hasUnsavedChanges = false;
+  document.getElementById('saveBar').classList.remove('show');
+  renderBuilder(); loadAppearanceForm();
+}
+function confirmLeaveIfDirty(){
+  if(hasUnsavedChanges){ return confirm('Você tem alterações não salvas nos questionários. Sair mesmo assim? As alterações serão perdidas.'); }
+  return true;
+}
+window.addEventListener('beforeunload', e=>{ if(hasUnsavedChanges){ e.preventDefault(); e.returnValue=''; } });
+
+/* ================= NAV ================= */
+const switcherButtons = document.querySelectorAll('#switcher button');
+switcherButtons.forEach(b=>b.addEventListener('click', ()=>{
+  const leavingAdmin = document.getElementById('view-adm').classList.contains('active') && document.getElementById('cp-admin').classList.contains('active');
+  if(leavingAdmin && b.dataset.view!=='adm' && !confirmLeaveIfDirty()) return;
+  if(b.dataset.view==='servir') QS.servir.visitorId = null;
+  switchView(b.dataset.view);
+}));
+function switchView(name){
+  switcherButtons.forEach(x=>x.classList.toggle('active', x.dataset.view===name));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  renderAll();
+  if(name==='form') qStart('visitor');
+  if(name==='servir') qStart('servir');
+}
+function showAdmPanel(name){
+  const leavingAdmin = document.getElementById('cp-admin').classList.contains('active');
+  if(leavingAdmin && name!=='admin' && !confirmLeaveIfDirty()) return;
+  document.querySelectorAll('.chpanel').forEach(a=>a.classList.toggle('on', a.dataset.panel===name));
+  document.querySelectorAll('.chpanel-body').forEach(b=>b.classList.remove('active'));
+  document.getElementById('cp-'+name).classList.add('active');
+  renderAll();
+}
+function showPastorPanel(name){
+  document.querySelectorAll('.ppanel').forEach(a=>a.classList.toggle('on', a.dataset.panel===name));
+  document.querySelectorAll('.ppanel-body').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pp-'+name).classList.add('active');
+  renderAll();
+}
+function showAdminTab(name){
+  document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.toggle('on', b.dataset.tab===name));
+  document.querySelectorAll('.admin-sub').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+function showLeaderPanel(name){
+  document.querySelectorAll('.lpanel').forEach(a=>a.classList.toggle('on', a.dataset.panel===name));
+  document.querySelectorAll('.lpanel-body').forEach(b=>b.classList.remove('active'));
+  document.getElementById('lp-'+name).classList.add('active');
+}
+
+/* ================= QUESTIONÁRIO PÚBLICO — MOTOR ÚNICO (questionnaire_type = visitor | ministry_service) ================= */
+/* Lê só o que foi SALVO (state), nunca o rascunho. Cores, logo e perguntas vêm da configuração persistida. */
+const QS = { visitor:{answers:{}, qid:null, hist:[], busy:false, done:false, visitorId:null},
+             servir :{answers:{}, qid:null, hist:[], busy:false, done:false, visitorId:null} };
+const QROOT = { visitor:{view:'view-form', logo:'publicLogoBlock', body:'publicQuestions'},
+                servir :{view:'view-servir', logo:'servirLogoBlock', body:'servirBody'} };
+const qroot = t => document.getElementById(QROOT[t].body);
+function appOf(t){ return t==='servir' ? state.servir.appearance : state.appearance; }
+function qsOf(t){ return t==='servir' ? state.servir.questions : state.questions; }
+function optsOf(q){ return q.type==='ministries' ? state.ministries : (q.options||[]); }
+function qOptList(q){ return (q.type==='boolean'||q.type==='cell') ? ['Sim','Não'] : optsOf(q); }
+function isEmptyAns(v){ return v==null || v==='' || (Array.isArray(v) && !v.length); }
+function cellFitsAge(c, age){ return age==null || ((!c.ageMin || age>=Number(c.ageMin)) && (!c.ageMax || age<=Number(c.ageMax))); }
+function cellLabel(c){ return [c.name, c.day, c.time].filter(Boolean).join(' · '); }
+function svgUrl(svg){ return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg); }
+function logoHtml(app){ return app.logo_svg ? `<img class="qlogo" alt="${esc(app.churchName)}" src="${svgUrl(app.logo_svg)}">` : `<div class="qlogo-fb">${esc(app.churchName)}</div>`; }
+function themeVars(app){ return `--qbg:${app.background_color};--qtext:${app.text_color};--q2:${app.secondary_text_color};--qbtn:${app.button_color};--qbtntext:${app.button_text_color};`; }
+
+function condOk(q, answers, strict){
+  if(!q.cond || !q.cond.qid) return true;
+  const a = answers[q.cond.qid];
+  if(isEmptyAns(a)) return !strict;                       // ainda sem resposta: conta na barra, mas não entra no fluxo
+  return Array.isArray(a) ? a.includes(q.cond.value) : a===q.cond.value;
+}
+function flowOf(t, strict){
+  const S = QS[t]; const known = t==='servir' && S.visitorId!=null;
+  return qsOf(t).filter(q=>{
+    if(known && (q.gate || q.identity || q.type==='whatsapp' || q.type==='age')) return false;   // dados já cadastrados: não pedir de novo
+    return condOk(q, S.answers, strict);
+  });
+}
+function qValid(q, v){
+  if(isEmptyAns(v)) return !q.required;
+  if(q.type==='whatsapp'){ const d=String(v).replace(/\D/g,''); return d.length>=10 && d.length<=13; }
+  if(q.type==='age'){ const n=Number(v); return n>=1 && n<=120; }
+  return true;
+}
+function qHint(q, v){
+  if(isEmptyAns(v) || qValid(q,v)) return '';
+  return q.type==='whatsapp' ? 'Digite o WhatsApp com DDD.' : (q.type==='age' ? 'Digite uma idade válida.' : '');
+}
+function qNextOf(t){ const S=QS[t]; const f=flowOf(t,true); const i=f.findIndex(x=>x.id===S.qid); return (i>-1 && i<f.length-1) ? f[i+1] : null; }
+function qLabel(t){
+  if(qNextOf(t)) return 'Continuar';
+  const gate = qsOf(t).find(q=>q.gate);
+  return (t==='servir' && gate && QS.servir.answers[gate.id]==='Não') ? 'Concluir' : 'Enviar';
+}
+
+function applyQTheme(el, app){
+  [['--qbg',app.background_color],['--qtext',app.text_color],['--q2',app.secondary_text_color],['--qbtn',app.button_color],['--qbtntext',app.button_text_color]].forEach(([k,v])=>el.style.setProperty(k,v));
+}
+function qRefreshTheme(){
+  QN_TYPES.forEach(t=>{ const R=QROOT[t], app=appOf(t); applyQTheme(document.getElementById(R.view), app); document.getElementById(R.logo).innerHTML = logoHtml(app); });
+}
+function qMsg(title, text){ return `<div class="qstep"><h1 class="qq">${esc(title)}</h1><p class="qd">${esc(text)}</p></div>`; }
+
+function qStart(t){
+  const S=QS[t]; S.answers={}; S.hist=[]; S.busy=false; S.done=false;
+  if(t==='servir' && S.visitorId!=null){
+    if(!state.responses.find(r=>r.id===S.visitorId)) S.visitorId=null;
+    else { const gate=qsOf(t).find(q=>q.gate); if(gate) S.answers[gate.id]='Sim'; }
+  }
+  const first = flowOf(t,true)[0]; S.qid = first ? first.id : null;
+  qRender(t);
+}
+function qRender(t){
+  qRefreshTheme();
+  const S=QS[t], body=document.getElementById(QROOT[t].body), meta=state.qmeta[t];
+  if(!meta.active){ body.innerHTML = qMsg('Questionário indisponível','Este questionário não está recebendo respostas no momento.'); return; }
+  const q = qsOf(t).find(x=>x.id===S.qid);
+  if(!q){ body.innerHTML = qMsg('Nada para responder','Nenhuma pergunta está configurada neste questionário.'); return; }
+  const nf = flowOf(t,false), pos = Math.max(0, nf.findIndex(x=>x.id===q.id)), total = Math.max(nf.length,1);
+  const pct = Math.round(((pos+1)/total)*100);
+  body.innerHTML = `<div class="qstep">
+    <div class="qprog" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
+    <h1 class="qq">${esc(q.label)}</h1>
+    ${q.description ? `<p class="qd">${esc(q.description)}</p>` : ''}
+    <div class="qfield">${qControl(t,q)}</div>
+    <p class="qhint" role="alert"></p>
+    <p class="qcount">${pos+1} de ${total}</p>
+    <div class="qactions">${S.hist.length ? `<button type="button" class="qback" onclick="qBack('${t}')">Anterior</button>` : ''}<button type="button" class="qbtn qnext" onclick="qNext('${t}')">Continuar</button></div>
+  </div>`;
+  qUpdateNav(t);
+  setTimeout(()=>{ const i=qroot(t).querySelector('[data-qin]'); if(i && document.getElementById(QROOT[t].view).classList.contains('active')) i.focus({preventScroll:true}); }, 60);
+}
+function qChoices(t,q,opts,multi,layout,pv){
+  const v = pv ? null : QS[t].answers[q.id];
+  const sel = o => Array.isArray(v) ? v.includes(o) : v===o;
+  return `<div class="qopts ${layout}" role="${multi?'group':'radiogroup'}">${opts.map((o,i)=>`<button type="button" class="qopt${sel(o)?' picked':''}" aria-pressed="${sel(o)}" ${pv?'tabindex="-1"':`onclick="${multi?'qToggle':'qPick'}('${t}','${q.id}',${i})"`}><span>${esc(o)}</span><i class="qchk"></i></button>`).join('')}</div>`;
+}
+function cellOptionsHtml(t,q){
+  const S=QS[t]; const ageQ = qsOf(t).find(x=>x.type==='age'); const a = ageQ ? Number(S.answers[ageQ.id]) : NaN;
+  const cells = state.cells.filter(c=>c.status!=='inactive' && cellFitsAge(c, isNaN(a)?null:a));
+  if(!cells.length) return `<p class="qsub" style="margin:0;">Nossa equipe vai te ajudar a encontrar a célula mais próxima de você.</p>`;
+  const cur = S.answers[q.id+'__cell'];
+  return `<p class="qsub">Se já tiver preferência, escolha uma célula (opcional):</p><div class="qopts">${cells.map(c=>`<button type="button" class="qopt${cur===c.id?' picked':''}" onclick="qPickCell('${t}','${q.id}','${c.id}')"><span>${esc(cellLabel(c))}</span><i class="qchk"></i></button>`).join('')}</div>`;
+}
+function qControl(t,q,pv){
+  const S=QS[t], v = pv ? '' : S.answers[q.id], on = s => pv ? '' : s;
+  if(['short','whatsapp','number','age','city','neighborhood'].includes(q.type)){
+    const num = q.type==='number'||q.type==='age';
+    const type = num ? 'number' : (q.type==='whatsapp' ? 'tel' : 'text');
+    const im = num ? 'numeric' : (q.type==='whatsapp' ? 'tel' : 'text');
+    const ph = q.type==='whatsapp' ? '(00) 00000-0000' : (q.type==='age' ? 'Ex.: 28' : 'Digite aqui');
+    const ac = q.type==='whatsapp' ? 'tel' : ((q.identity==='name'||/nome/i.test(q.label)) ? 'name' : 'off');
+    return `<input class="qinput" ${pv?'':'data-qin'} type="${type}" inputmode="${im}" autocomplete="${ac}" placeholder="${ph}" aria-label="${esc(q.label)}" ${pv?'tabindex="-1" readonly':''} value="${esc(v==null?'':v)}" ${on(`oninput="qSet('${t}','${q.id}',this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();qNext('${t}')}"`)}>`;
+  }
+  if(q.type==='long' || q.type==='prayer'){
+    return `<textarea class="qinput" ${pv?'':'data-qin'} placeholder="Escreva aqui" aria-label="${esc(q.label)}" ${pv?'tabindex="-1" readonly':''} ${on(`oninput="qSet('${t}','${q.id}',this.value)"`)}>${esc(v==null?'':v)}</textarea>`;
+  }
+  if(q.type==='boolean') return qChoices(t,q,['Sim','Não'],false,'two',pv);
+  if(q.type==='single') return qChoices(t,q,optsOf(q),false,'',pv);
+  if(q.type==='multi' || q.type==='ministries'){
+    const o = optsOf(q);
+    if(!o.length) return `<p class="qd">Nenhuma opção disponível no momento.</p>`;
+    return qChoices(t,q,o,true,'two',pv);
+  }
+  if(q.type==='cell'){
+    return qChoices(t,q,['Sim','Não'],false,'two',pv) + ((!pv && v==='Sim') ? `<div class="qcells">${cellOptionsHtml(t,q)}</div>` : '');
+  }
+  return '';
+}
+function qRefreshField(t){ const q=qsOf(t).find(x=>x.id===QS[t].qid); const f=qroot(t).querySelector('.qfield'); if(q&&f) f.innerHTML=qControl(t,q); qUpdateNav(t); }
+function qSet(t,id,val){ QS[t].answers[id]=val; qUpdateNav(t); }
+function qPick(t,id,idx){
+  const q=qsOf(t).find(x=>x.id===id); const val=qOptList(q)[idx]; const S=QS[t];
+  S.answers[id]=val; if(q.type==='cell' && val!=='Sim') delete S.answers[id+'__cell'];
+  qRefreshField(t);
+}
+function qToggle(t,id,idx){
+  const q=qsOf(t).find(x=>x.id===id); const val=optsOf(q)[idx]; const S=QS[t];
+  let arr = Array.isArray(S.answers[id]) ? S.answers[id].slice() : [];
+  const i = arr.indexOf(val);
+  if(i>-1) arr.splice(i,1);
+  else if(NONE_RE.test(val)) arr=[val];
+  else { arr = arr.filter(x=>!NONE_RE.test(x)); arr.push(val); }
+  S.answers[id]=arr; qRefreshField(t);
+}
+function qPickCell(t,id,cid){ const S=QS[t]; if(S.answers[id+'__cell']===cid) delete S.answers[id+'__cell']; else S.answers[id+'__cell']=cid; qRefreshField(t); }
+function qUpdateNav(t){
+  const S=QS[t]; const q=qsOf(t).find(x=>x.id===S.qid); const btn=qroot(t).querySelector('.qnext'); if(!q||!btn) return;
+  const v=S.answers[q.id]; const h=qroot(t).querySelector('.qhint'); if(h) h.textContent = qHint(q,v);
+  btn.disabled = !qValid(q,v) || S.busy;
+  btn.innerHTML = S.busy ? '<span class="qspin" aria-label="Enviando"></span>' : esc(qLabel(t));
+}
+function qNext(t){
+  const S=QS[t]; if(S.busy||S.done) return;
+  const q=qsOf(t).find(x=>x.id===S.qid); if(!q || !qValid(q,S.answers[q.id])) return;
+  const nx=qNextOf(t);
+  if(nx){ S.hist.push(S.qid); S.qid=nx.id; qRender(t); } else qFinish(t);
+}
+function qBack(t){ const S=QS[t]; if(!S.hist.length) return; S.qid=S.hist.pop(); qRender(t); }
+function qFinish(t){
+  const S=QS[t]; S.busy=true; qUpdateNav(t);
+  setTimeout(()=>{ S.busy=false; S.done=true; if(t==='servir') finishServir(); else finishVisitor(); }, 450);
+}
+function cleanAnswers(t){
+  const S=QS[t], out={};
+  flowOf(t,true).forEach(q=>{ if(!isEmptyAns(S.answers[q.id])) out[q.id]=S.answers[q.id]; if(S.answers[q.id+'__cell']) out[q.id+'__cell']=S.answers[q.id+'__cell']; });
+  return out;
+}
+function qDoneHtml(title, msg, extra){
+  return `<div class="qstep qdone"><div class="qcheck">${ic('check',26)}</div><h1 class="qq">${esc(title)}</h1><p class="qd">${esc(msg)}</p>${extra||''}</div>`;
+}
+function refreshAfterSubmit(){
+  renderBuilder(); loadAppearanceForm(); renderLeaders(); renderCells(); renderDistribution(); renderDashboard(); renderVisitors(); renderVisitorsAdm(); renderInterestsAdm(); renderLeaderArea(); paintStaticIcons();
+}
+function finishVisitor(){
+  const answers = cleanAnswers('visitor'); const now = new Date().toISOString();
+  const resp = { id:Date.now(), churchId:CHURCH_ID, date:now, answers, status:'pendente', history:[{status:'pendente', at:now}], firstContactAt:null, firstResponseAt:null, visitorKey:keyOfAnswers(answers), assignments:[] };
+  resp.assignments = computeAssignments(resp);
+  syncVisitorFromFollowup(resp);
+  state.responses.push(resp);
+  linkInterestsToVisitor(resp);
+  save();
+  const app = appOf('visitor');
+  const servirOn = state.qmeta.servir.active && state.servir.questions.length;
+  const cta = servirOn ? `<div class="qcta"><p>Quer fazer parte de algum ministério?</p><button type="button" class="qbtn sec" onclick="openServir(${resp.id})">Quero servir</button></div>` : '';
+  document.getElementById(QROOT.visitor.body).innerHTML = qDoneHtml('Tudo certo.', app.finalMessage || 'Suas informações foram enviadas.', cta + `<button type="button" class="qlink" onclick="qStart('visitor')">Enviar outra resposta</button>`);
+  refreshAfterSubmit();
+}
+function openServir(visitorId){ QS.servir.visitorId = visitorId; switchView('servir'); }
+function finishServir(){
+  const S=QS.servir, qs=qsOf('servir'), answers=cleanAnswers('servir'), app=appOf('servir');
+  const body=document.getElementById(QROOT.servir.body);
+  const again = `<button type="button" class="qlink" onclick="qStart('servir')">Enviar outra resposta</button>`;
+  const gate = qs.find(q=>q.gate);
+  const v = S.visitorId!=null ? state.responses.find(r=>r.id===S.visitorId) : null;
+  if(!v && gate && S.answers[gate.id]==='Não'){ body.innerHTML = qDoneHtml('Obrigado!', 'Sem problema. Se mudar de ideia, é só voltar por aqui.', again); return; }
+  const mq = qs.find(q=>q.type==='ministries');
+  const mins = (mq && answers[mq.id] ? answers[mq.id] : []).filter(m=>!NONE_RE.test(m));
+  if(!mins.length){ body.innerHTML = qDoneHtml('Nenhum ministério escolhido.', 'Nada foi registrado. Você pode voltar e escolher onde quer servir.', again); return; }
+  let person;
+  if(v){ person = {name:nameOf(v), whatsapp:whatsOf(v), age:ageOf(v), visitorId:v.id, visitorKey:v.visitorKey||null, source:'visitante'}; }
+  else {
+    const nq = qs.find(q=>q.identity==='name') || qs.find(q=>q.type==='short'), wq = qs.find(q=>q.type==='whatsapp'), aq = qs.find(q=>q.type==='age');
+    const name = ((nq && answers[nq.id]) || '').trim(), whats = ((wq && answers[wq.id]) || '').trim(), age = aq ? Number(answers[aq.id]) : NaN;
+    const key = keyOfWhats(whats); const match = visitorByKey(key);       // identifica, mas nunca cria visitante
+    person = {name, whatsapp:whats, age:isNaN(age)?null:age, visitorId:match?match.id:null, visitorKey:key, source:'servir'};
+  }
+  const done=[], skipped=[];
+  mins.forEach(m=>{
+    const dup = state.serviceInterests.some(i=>i.ministry===m && !['concluido','sem_interesse'].includes(i.status) &&
+      ((person.visitorId!=null && i.visitorId===person.visitorId) || (person.visitorKey && i.visitorKey===person.visitorKey)));
+    if(dup){ skipped.push(m); return; }
+    const it = newInterest({...person, ministry:m}); it.answers = {...answers}; state.serviceInterests.push(it); done.push(m);
+  });
+  save();
+  const msg = done.length ? `Interesse registrado em ${done.join(', ')}. ${app.finalMessage||''}`.trim() : 'Você já tem um interesse em aberto nesse ministério.';
+  body.innerHTML = qDoneHtml('Tudo certo.', msg + (skipped.length && done.length ? ` (Já havia interesse em aberto em ${skipped.join(', ')}.)` : ''), again);
+  refreshAfterSubmit();
+}
+function routeFromHash(){
+  const h=(location.hash||'').replace(/^#\/?/,''); const map={visitante:'form', visitor:'form', servir:'servir'};
+  const on = !!map[h]; document.body.classList.toggle('public-entry', on);
+  if(on){ if(map[h]==='servir') QS.servir.visitorId=null; switchView(map[h]); }
+}
+window.addEventListener('hashchange', routeFromHash);
+function paintBrand(){
+  document.querySelectorAll('.side-brand').forEach(b=>{
+    const first=b.firstElementChild; if(!first) return;
+    if(!b.dataset.orig) b.dataset.orig = first.outerHTML;
+    first.outerHTML = state.appearance.logo_svg ? `<img class="side-logo" alt="" src="${svgUrl(state.appearance.logo_svg)}">` : b.dataset.orig;
+  });
+}
+function exportConfig(){
+  const mk = t => { const a=appOf(t), m=state.qmeta[t];
+    return {church_id:CHURCH_ID, questionnaire_type:m.type, title:m.title, description:m.description, active:m.active, version:m.version, questions:qsOf(t),
+      appearance_config:{logo_svg:a.logo_svg, background_color:a.background_color, text_color:a.text_color, secondary_text_color:a.secondary_text_color, button_color:a.button_color, button_text_color:a.button_text_color, final_message:a.finalMessage}}; };
+  const blob = new Blob([JSON.stringify({questionnaires:[mk('visitor'),mk('servir')]},null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='poundix_questionarios.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+function renderPublicForm(){ qStart('visitor'); }
+
+/* ================= DADOS DO VISITANTE / DISTRIBUIÇÃO ================= */
+function interestQ(){ return state.questions.find(q=>q.type==='multi' && /interesse|minist[ée]rio/i.test(q.label)); }
+function cellQ(){ return state.questions.find(q=>q.type==='cell'); }
+function interestsOf(r){ return [...new Set((state.serviceInterests||[]).filter(i=>i.visitorId===r.id).map(i=>i.ministry))]; }
+function wantsCell(r){ const q=cellQ(); return !!q && r.answers[q.id]==='Sim'; }
+function ageOf(r){ const q=state.questions.find(q=>q.type==='age'); const a=q?Number(r.answers[q.id]):NaN; return isNaN(a)?null:a; }
+function whatsOf(r){ const q=state.questions.find(q=>q.type==='whatsapp'); return (q && r.answers[q.id]) || ''; }
+function leaderById(id){ return state.leaders.find(l=>l.id===id); }
+function cellById(id){ return state.cells.find(c=>c.id===id); }
+function leaderFitsAge(l, age){ return age==null || ((!l.ageMin || age>=Number(l.ageMin)) && (!l.ageMax || age<=Number(l.ageMax))); }
+function ageInRange(age, min, max){ return age==null || ((min===''||min==null||age>=Number(min)) && (max===''||max==null||age<=Number(max))); }
+function pickMinistryLeader(name, age){
+  const key = String(name).toLowerCase();
+  const rule = state.rules.find(x=>{ const l = x.scope==='servir' && x.action ? leaderById(x.action.ref) : null;
+    return l && l.status!=='inactive' && x.conds.interest && String(x.conds.interest).toLowerCase()===key && ageInRange(age, x.conds.ageMin, x.conds.ageMax); });
+  if(rule) return rule.action.ref;
+  const cands = state.leaders.filter(l=>l.status!=='inactive' && (l.ministries||[]).some(m=>String(m).toLowerCase()===key));
+  return (cands.find(l=>leaderFitsAge(l,age)) || cands[0] || {}).id || null;
+}
+function ruleMatches(rule, r){
+  const c = rule.conds || {}; const ints = interestsOf(r).map(x=>x.toLowerCase()); const age = ageOf(r);
+  if(c.interest && !ints.includes(String(c.interest).toLowerCase())) return false;
+  if(c.ageMin!=='' && c.ageMin!=null && (age==null || age<Number(c.ageMin))) return false;
+  if(c.ageMax!=='' && c.ageMax!=null && (age==null || age>Number(c.ageMax))) return false;
+  if(c.cell==='sim' && !wantsCell(r)) return false;
+  if(c.qid){ const v=r.answers[c.qid]; const arr=Array.isArray(v)?v:[v]; if(!arr.some(x=>String(x)===c.qval)) return false; }
+  return true;
+}
+function resolveAction(rule, r){
+  const a = rule.action || {};
+  if(a.kind==='celula'){ const c = cellById(a.ref); if(!c) return null;
+    return {kind:'celula', target:'Célula: '+c.name, leaderId:(c.leaderIds||[]).find(id=>leaderById(id))||null, cellId:c.id}; }
+  const l = leaderById(a.ref); if(!l) return null;
+  return {kind:'acompanhamento', target:'Acompanhamento', leaderId:l.id, cellId:null};
+}
+function followupOf(r){ return (r.assignments||[]).find(a=>a.kind==='acompanhamento'); }
+function hasFollowLeader(r){ const f = followupOf(r); return !!(f && f.leaderId); }
+function defaultFollowLeader(age){
+  const fu = state.leaders.filter(l=>l.status!=='inactive' && l.type==='acompanhamento');
+  return (fu.find(l=>l.responsavel!=='secundario' && leaderFitsAge(l,age)) || fu.find(l=>leaderFitsAge(l,age)) || fu[0] || {}).id || null;
+}
+/* visitor_followup_assignment: um registro por visitante; o status só muda por ação real registrada */
+function newFollowup(r, cands, at){
+  return {id:uid(), kind:'acompanhamento', target:'Acompanhamento', churchId:CHURCH_ID, leaderId:cands[0]||null, candidateIds:[...cands], cellId:null,
+    status:'pendente', assignedAt:cands[0]?at:null, firstContactAt:null, contactedBy:null, completedAt:null, createdAt:at, history:[{status:'pendente', at, by:null}]};
+}
+function computeAssignments(r){
+  const out = []; const age = ageOf(r); const at = r.date; const cands = [];
+  const add = (a)=>{ if(!out.some(o=>o.kind===a.kind && o.target===a.target && o.leaderId===a.leaderId && o.cellId===a.cellId)) out.push({id:uid(), status:'pendente', history:[{status:'pendente', at, by:null}], ...a}); };
+  if(state.distSettings.autoCell && wantsCell(r)){
+    const cq = cellQ(); const c = cellById(r.answers[cq.id+'__cell']);
+    const fallback = (state.leaders.find(l=>l.status!=='inactive' && l.type==='celula' && leaderFitsAge(l,age))||{}).id || null;
+    add({kind:'celula', target: c ? 'Célula: '+c.name : 'Célula', leaderId: c ? ((c.leaderIds||[]).find(id=>leaderById(id))||null) : fallback, cellId: c ? c.id : null});
+  }
+  state.rules.filter(x=>x.scope!=='servir').forEach(rule=>{
+    if(!ruleMatches(rule, r)) return;
+    const a = resolveAction(rule, r); if(!a) return;
+    if(a.kind==='celula') add(a); else if(a.leaderId && !cands.includes(a.leaderId)) cands.push(a.leaderId);
+  });
+  if(!cands.length){ const d = defaultFollowLeader(age); if(d) cands.push(d); }
+  out.unshift(newFollowup(r, cands, at));
+  return out;
+}
+/* O visitante espelha o acompanhamento; células não alteram o status do visitante */
+function syncVisitorFromFollowup(r){
+  const f = followupOf(r); if(!f) return;
+  r.status = f.status;
+  r.history = f.history.map(h=>({status:h.status, at:h.at}));
+  r.firstContactAt = f.firstContactAt;
+  const resp = f.history.find(h=>['acompanhamento','concluido'].includes(h.status));
+  r.firstResponseAt = resp ? resp.at : null;
+}
+function setAssignmentStatus(rid, aid, status){
+  const r = state.responses.find(r=>r.id===rid); if(!r) return;
+  const a = (r.assignments||[]).find(a=>a.id===aid); if(!a) return;
+  const at = new Date().toISOString(); const by = a.leaderId || null;
+  a.status = status; a.history.push({status, at, by});
+  if(a.kind==='acompanhamento'){
+    if(REAL_CONTACT.includes(status) && !a.firstContactAt){ a.firstContactAt = at; a.contactedBy = by; }   // "atribuído" não é "contatado"
+    if(status==='concluido') a.completedAt = at;
+    syncVisitorFromFollowup(r);
+  }
+  save(); renderAll();
+}
+function setAssignmentLeader(rid, aid, lid){
+  const r = state.responses.find(r=>r.id===rid); if(!r) return;
+  const a = (r.assignments||[]).find(a=>a.id===aid); if(!a) return;
+  a.leaderId = lid || null;
+  if(a.leaderId){ a.assignedAt = a.assignedAt || new Date().toISOString(); if(a.candidateIds && !a.candidateIds.includes(a.leaderId)) a.candidateIds.push(a.leaderId); }
+  save(); renderAll();
+}
+function setAssignmentCell(rid, aid, cid){
+  const r = state.responses.find(r=>r.id===rid); const a = r && r.assignments.find(a=>a.id===aid); if(!a) return;
+  const c = cellById(cid); a.cellId = c ? c.id : null; a.target = c ? 'Célula: '+c.name : 'Célula';
+  if(c){ const lid = (c.leaderIds||[]).find(id=>leaderById(id)); if(lid) a.leaderId = lid; }
+  save(); renderAll();
+}
+function reapplyRules(){
+  let n = 0;
+  state.responses.forEach(r=>{
+    const f = followupOf(r); if(!f || f.leaderId) return;
+    const nf = followupOf({assignments: computeAssignments(r)});
+    if(nf && nf.leaderId){ f.leaderId = nf.leaderId; f.candidateIds = nf.candidateIds; f.assignedAt = new Date().toISOString(); n++; }
+  });
+  save(); renderAll();
+  if(!n) alert('Nenhum visitante sem responsável pôde ser encaminhado. Cadastre um líder de acompanhamento ou uma regra.');
+}
+
+/* ================= INTERESSE EM SERVIR (ministry_service_assignment) ================= */
+function keyOfWhats(w){ const d = String(w||'').replace(/\D/g,'').slice(-11); return d.length>=8 ? hashKey(d) : null; }
+function visitorByKey(key){ return key ? ([...state.responses].reverse().find(r=>r.visitorKey===key)||null) : null; }
+function interestPerson(i){
+  const r = i.visitorId!=null ? state.responses.find(r=>r.id===i.visitorId) : null;
+  return r ? {name:nameOf(r), whatsapp:whatsOf(r), age:ageOf(r), visitor:true} : {name:i.name||'Pessoa', whatsapp:i.whatsapp||'', age:i.age, visitor:false};
+}
+function newInterest(p){
+  const at = p.at || new Date().toISOString();
+  const leaderId = state.distSettings.autoMinistry ? pickMinistryLeader(p.ministry, p.age) : null;
+  const hist = [{status:'recebido', at, by:null}]; if(leaderId) hist.push({status:'encaminhado', at, by:null});
+  return {id:uid(), churchId:CHURCH_ID, visitorId:p.visitorId!=null?p.visitorId:null, visitorKey:p.visitorKey||null, name:p.name||'', whatsapp:p.whatsapp||'', age:p.age==null?null:p.age,
+    ministry:p.ministry, leaderId, status:leaderId?'encaminhado':'recebido', assignedAt:leaderId?at:null,
+    firstContactAt:null, contactedBy:null, completedAt:null, createdAt:at, source:p.source||'servir', history:hist};
+}
+function setInterestStatus(id, status){
+  const i = state.serviceInterests.find(x=>x.id===id); if(!i) return;
+  const at = new Date().toISOString(); const by = i.leaderId || null;
+  i.status = status; i.history.push({status, at, by});
+  if(MIN_CONTACT.includes(status) && !i.firstContactAt){ i.firstContactAt = at; i.contactedBy = by; }   // "encaminhado" não é "contatado"
+  if(status==='concluido') i.completedAt = at;
+  save(); renderAll();
+}
+function setInterestLeader(id, lid){
+  const i = state.serviceInterests.find(x=>x.id===id); if(!i) return;
+  const at = new Date().toISOString();
+  i.leaderId = lid || null;
+  if(i.leaderId){ i.assignedAt = i.assignedAt || at; if(i.status==='recebido'){ i.status = 'encaminhado'; i.history.push({status:'encaminhado', at, by:null}); } }
+  save(); renderAll();
+}
+function reapplyInterests(){
+  let n = 0;
+  state.serviceInterests.forEach(i=>{ if(i.leaderId) return; const l = pickMinistryLeader(i.ministry, interestPerson(i).age); if(l){ setInterestLeaderQuiet(i, l); n++; } });
+  save(); renderAll();
+  if(!n) alert('Nenhum interesse sem responsável pôde ser encaminhado. Cadastre um líder para o ministério.');
+}
+function setInterestLeaderQuiet(i, lid){
+  const at = new Date().toISOString(); i.leaderId = lid; i.assignedAt = i.assignedAt || at;
+  if(i.status==='recebido'){ i.status = 'encaminhado'; i.history.push({status:'encaminhado', at, by:null}); }
+}
+function linkInterestsToVisitor(r){ (state.serviceInterests||[]).forEach(i=>{ if(i.visitorId==null && i.visitorKey && i.visitorKey===r.visitorKey) i.visitorId = r.id; }); }
+
+/* --- Questionário Quero servir --- */
+/* ================= BUILDER (opera sobre draft, precisa Salvar) ================= */
+const TYPE_LABELS = {ministries:'Ministérios da igreja (botões)', short:'Texto curto', long:'Texto longo', whatsapp:'WhatsApp', number:'Número',
+  single:'Seleção única', multi:'Múltipla seleção', boolean:'Sim/Não', age:'Idade', city:'Cidade',
+  neighborhood:'Bairro', prayer:'Pedido de oração', cell:'Interesse em célula (Sim/Não)'};
+function qById(id){ return dq().find(q=>q.id===id); }
+function addQuestion(){ dq().push({id:uid(), type:'short', label:'Nova pergunta', description:'', required:false, options:[]}); markDirty(); renderBuilder(); }
+function updateQuestion(id, field, value){ const q=qById(id); if(!q)return; q[field]=value; markDirty(); renderBuilder(); }
+function updateOptions(id, raw){ const q=qById(id); if(!q)return; q.options=raw.split(';').map(s=>s.trim()).filter(Boolean); markDirty(); renderBuilder(); }
+function duplicateQuestion(id){ const l=dq(); const idx=l.findIndex(q=>q.id===id); const copy={...clone(l[idx]), id:uid()}; delete copy.gate; delete copy.identity; l.splice(idx+1,0,copy); markDirty(); renderBuilder(); }
+function deleteQuestion(id){ draft.questions[editQn]=dq().filter(q=>q.id!==id); dq().forEach(q=>{ if(q.cond && q.cond.qid===id) delete q.cond; }); markDirty(); renderBuilder(); }
+function moveQuestion(id, dir){ const l=dq(); const idx=l.findIndex(q=>q.id===id); const s=idx+dir; if(s<0||s>=l.length)return; [l[idx], l[s]]=[l[s], l[idx]]; markDirty(); renderBuilder(); }
+function condValues(q){ return qOptList(q); }
+function condSources(idx){ return dq().slice(0,idx).filter(q=>['boolean','single','cell','multi','ministries'].includes(q.type)); }
+function setCondQ(id, qid){ const q=qById(id); if(!q) return; if(!qid) delete q.cond; else { const src=qById(qid); q.cond={qid, value:(condValues(src)[0]||'')}; } markDirty(); renderBuilder(); }
+function setCondVal(id, val){ const q=qById(id); if(q && q.cond){ q.cond.value=val; markDirty(); renderBuilder(); } }
+function updateMeta(field, val){ draft.meta[editQn][field]=val; markDirty(); }
+function toggleActive(){ draft.meta[editQn].active = !draft.meta[editQn].active; markDirty(); renderBuilder(); }
+function setEditQn(t){
+  editQn=t; pvIdx=0;
+  document.querySelectorAll('#qnSwitch button').forEach(b=>b.classList.toggle('on', b.dataset.qn===t));
+  renderBuilder(); loadAppearanceForm();
+}
+function previewPublished(){ switchView(editQn==='servir' ? 'servir' : 'form'); }
+const escA = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+function renderBuilder(){
+  const m = draft.meta[editQn];
+  document.querySelectorAll('#qnSwitch button').forEach(b=>b.classList.toggle('on', b.dataset.qn===editQn));
+  document.getElementById('qnInfo').textContent = `questionnaire_type = ${m.type}  ·  versão publicada ${state.qmeta[editQn].version}  ·  ${m.active?'ativo':'inativo'}`;
+  document.getElementById('qnTitle').value = m.title||''; document.getElementById('qnDesc').value = m.description||'';
+  document.getElementById('qnActive').classList.toggle('on', !!m.active);
+  const list = dq();
+  document.getElementById('builderList').innerHTML = list.map((q,i)=>{
+    const srcs = condSources(i);
+    const condSrc = q.cond ? qById(q.cond.qid) : null;
+    const condBad = q.cond && (!condSrc || list.indexOf(condSrc) >= i);
+    return `
+    <div class="q-item">
+      <div class="q-item-head">
+        <span class="q-num">${i+1}</span>
+        <input type="text" value="${escA(q.label)}" onchange="updateQuestion('${q.id}','label',this.value)">
+      </div>
+      <input class="q-desc" type="text" placeholder="Descrição curta (opcional)" value="${escA(q.description)}" onchange="updateQuestion('${q.id}','description',this.value)">
+      <div class="q-item-row2" style="margin-bottom:${(q.type==='single'||q.type==='multi')?'8px':'4px'};">
+        <label>Tipo de resposta</label>
+        <select onchange="updateQuestion('${q.id}','type',this.value)">
+          ${Object.entries(TYPE_LABELS).map(([k,v])=>`<option value="${k}" ${q.type===k?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      ${(q.type==='single'||q.type==='multi') ? `<div><label style="color:var(--muted); font-size:12px; display:block; margin-bottom:4px;">Opções (separadas por ;)</label><input class="opt-input" type="text" placeholder="Ex.: Louvor; Dança; Kids" value="${escA((q.options||[]).join('; '))}" onchange="updateOptions('${q.id}', this.value)"></div>` : ''}
+      ${q.type==='ministries' ? `<p class="mini-note">As opções vêm da lista de ministérios da igreja (Distribuição → Ministérios).</p>` : ''}
+      <div class="cond-row"><span>Mostrar somente se</span>
+        <select onchange="setCondQ('${q.id}', this.value)"><option value="">— sempre mostrar —</option>${srcs.map(s=>`<option value="${s.id}" ${q.cond&&q.cond.qid===s.id?'selected':''}>${escA(s.label)}</option>`).join('')}</select>
+        ${q.cond && condSrc ? `<span>for</span><select onchange="setCondVal('${q.id}', this.value)">${condValues(condSrc).map(v=>`<option value="${escA(v)}" ${q.cond.value===v?'selected':''}>${esc(v)}</option>`).join('')}</select>` : ''}
+      </div>
+      ${condBad ? `<p class="mini-note" style="color:var(--orange);">A pergunta de condição precisa vir antes desta.</p>` : ''}
+      <div class="q-item-footer">
+        <label class="req-toggle" onclick="updateQuestion('${q.id}','required',${!q.required})">
+          <span class="toggle ${q.required?'on':''}"><i></i></span> Obrigatória
+        </label>
+        <div class="q-actions">
+          <div class="icon-btn" title="Mover para cima" onclick="moveQuestion('${q.id}',-1)">${ic('arrow-up',14)}</div>
+          <div class="icon-btn" title="Mover para baixo" onclick="moveQuestion('${q.id}',1)">${ic('arrow-down',14)}</div>
+          <div class="icon-btn" title="Duplicar" onclick="duplicateQuestion('${q.id}')">${ic('copy',14)}</div>
+          <div class="icon-btn" title="Excluir" onclick="deleteQuestion('${q.id}')">${ic('x',14)}</div>
+        </div>
+      </div>
+    </div>`; }).join('') || '<p class="empty">Nenhuma pergunta. Adicione a primeira.</p>';
+  renderPreviews();
+}
+let pvIdx = 0;
+function pvStep(d){ const n=dq().length; pvIdx=Math.min(Math.max(pvIdx+d,0),Math.max(n-1,0)); renderPreviews(); }
+function previewHtml(){
+  const app=da(), qs=dq(); pvIdx=Math.min(pvIdx, Math.max(qs.length-1,0)); const q=qs[pvIdx];
+  if(!q) return '<p class="empty">Sem perguntas.</p>';
+  return `<div class="qtheme pv" style="${themeVars(app)}">
+      <div class="qhead">${logoHtml(app)}</div>
+      <div class="qprog"><i style="width:${Math.round((pvIdx+1)/qs.length*100)}%"></i></div>
+      <h1 class="qq">${esc(q.label)}</h1>${q.description?`<p class="qd">${esc(q.description)}</p>`:''}
+      <div class="qfield">${qControl(editQn,q,true)}</div>
+      <p class="qcount">${pvIdx+1} de ${qs.length}</p>
+      <div class="qactions"><button type="button" class="qbtn" tabindex="-1">Continuar</button></div>
+    </div>
+    <div class="pvnav"><button class="btn btn-ghost" style="padding:5px 10px; font-size:12px;" onclick="pvStep(-1)">Anterior</button><span>Pergunta ${pvIdx+1} de ${qs.length}</span><button class="btn btn-ghost" style="padding:5px 10px; font-size:12px;" onclick="pvStep(1)">Próxima</button></div>`;
+}
+function renderPreviews(){ ['builderPreview','apPreview'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=previewHtml(); }); }
+
+/* ================= APARÊNCIA (draft) ================= */
+const COLOR_FIELDS = [['background_color','Cor de fundo'],['text_color','Cor principal do texto'],['secondary_text_color','Cor secundária do texto'],['button_color','Cor dos botões'],['button_text_color','Cor do texto dos botões']];
+function buildColorFields(){
+  document.getElementById('apColors').innerHTML = COLOR_FIELDS.map(([k,l])=>`<div class="field"><label for="ap_${k}">${l}</label><div class="color-row"><input type="color" id="ap_${k}" oninput="setColor('${k}',this.value)"><input type="text" id="aph_${k}" maxlength="7" spellcheck="false" oninput="setColorHex('${k}',this.value)"></div></div>`).join('');
+}
+function setColor(k,v){ da()[k]=v.toUpperCase(); document.getElementById('aph_'+k).value=v.toUpperCase(); markDirty(); renderPreviews(); updateContrast(); }
+function setColorHex(k,v){ v=v.trim(); if(!/^#[0-9a-fA-F]{6}$/.test(v)) return; da()[k]=v.toUpperCase(); document.getElementById('ap_'+k).value=v.toLowerCase(); markDirty(); renderPreviews(); updateContrast(); }
+function lum(h){ const c=[1,3,5].map(i=>parseInt(h.substr(i,2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)); return .2126*c[0]+.7152*c[1]+.0722*c[2]; }
+function contrast(a,b){ const x=lum(a), y=lum(b); return (Math.max(x,y)+.05)/(Math.min(x,y)+.05); }
+function updateContrast(){
+  const a=da();
+  const rows=[['Texto principal sobre o fundo',a.text_color,a.background_color],['Texto secundário sobre o fundo',a.secondary_text_color,a.background_color],['Texto do botão sobre o botão',a.button_text_color,a.button_color]];
+  document.getElementById('apContrast').innerHTML = rows.map(([l,f,b])=>{ const r=contrast(f,b); return `<div><span>${l}: ${r.toFixed(1)}:1</span>${r>=4.5?'<span class="tag ok">Legível</span>':'<span class="tag warn">Contraste baixo</span>'}</div>`; }).join('');
+}
+function setLogoMsg(msg, bad){ const el=document.getElementById('apLogoMsg'); if(el){ el.textContent=msg||''; el.style.color = bad ? 'var(--orange)' : 'var(--muted)'; } }
+function loadAppearanceForm(){
+  const a=da();
+  document.getElementById('apChurchName').value = a.churchName;
+  document.getElementById('apFinal').value = a.finalMessage||'';
+  COLOR_FIELDS.forEach(([k])=>{ document.getElementById('ap_'+k).value=(a[k]||'#000000').toLowerCase(); document.getElementById('aph_'+k).value=(a[k]||'').toUpperCase(); });
+  document.getElementById('apLogoPreview').innerHTML = a.logo_svg ? `<img alt="Logo" src="${svgUrl(a.logo_svg)}">` : 'Sem logo (usa o nome da igreja)';
+  document.getElementById('apCopyBtn').textContent = editQn==='visitor' ? 'Copiar cores do Quero servir' : 'Copiar cores do Visitante';
+  document.getElementById('stChurchNameDisplay').textContent = state.appearance.churchName;
+  updateContrast(); renderPreviews();
+}
+function updateDraftAppearance(){
+  const name = document.getElementById('apChurchName').value;
+  QN_TYPES.forEach(t=>{ draft.appearance[t].churchName = name; });
+  da().finalMessage = document.getElementById('apFinal').value;
+  markDirty(); renderPreviews();
+}
+function copyColors(){
+  const other = editQn==='visitor' ? 'servir' : 'visitor';
+  COLOR_FIELDS.forEach(([k])=>{ da()[k] = draft.appearance[other][k]; });
+  markDirty(); loadAppearanceForm();
+}
+function setLogo(svg){ QN_TYPES.forEach(t=>{ draft.appearance[t].logo_svg = svg; }); markDirty(); loadAppearanceForm(); }
+function removeLogo(){ setLogo(null); setLogoMsg('Logo removida do rascunho.'); }
+function sanitizeSvg(src){
+  let doc; try{ doc = new DOMParser().parseFromString(src, 'image/svg+xml'); }catch(e){ return {error:'Não foi possível ler o arquivo SVG.'}; }
+  const root = doc.documentElement;
+  if(!root || doc.getElementsByTagName('parsererror').length || root.localName!=='svg') return {error:'O arquivo não é um SVG válido.'};
+  if(root.getElementsByTagName('image').length) return {error:'Este SVG tem imagem raster embutida (PNG/JPG). Envie um SVG 100% vetorial.'};
+  const DROP = ['script','foreignobject','iframe','object','embed','link','meta','audio','video','canvas','animate','set','animatetransform','animatemotion','handler','listener'];
+  [root, ...Array.from(root.getElementsByTagName('*'))].forEach(el=>{
+    const ln = el.localName.toLowerCase();
+    if(el!==root && DROP.includes(ln)){ el.remove(); return; }
+    Array.from(el.attributes).forEach(at=>{
+      const n=at.name.toLowerCase(), val=at.value;
+      if(n.startsWith('on')) el.removeAttribute(at.name);
+      else if((n==='href'||n==='xlink:href') && !val.trim().startsWith('#')) el.removeAttribute(at.name);
+      else if(n==='style' && /url\(\s*(?!['"]?#)|expression\(/i.test(val)) el.removeAttribute(at.name);
+      else if(/javascript:/i.test(val)) el.removeAttribute(at.name);
+    });
+    if(ln==='style') el.textContent = el.textContent.replace(/@import[^;]*;?/gi,'').replace(/url\(\s*(?!['"]?#)[^)]*\)/gi,'none');
+  });
+  if(!root.getAttribute('viewBox')){
+    const wa=root.getAttribute('width')||'', ha=root.getAttribute('height')||'';
+    const w=/%/.test(wa)?NaN:parseFloat(wa), h=/%/.test(ha)?NaN:parseFloat(ha);
+    if(!(w>0 && h>0)) return {error:'SVG sem viewBox ou dimensões. Exporte novamente incluindo o viewBox.'};
+    root.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  }
+  root.removeAttribute('width'); root.removeAttribute('height');          // proporção original preservada pelo viewBox
+  if(!root.getAttribute('xmlns')) root.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  return {svg: new XMLSerializer().serializeToString(root)};
+}
+function handleLogoUpload(ev){
+  const file = ev.target.files[0]; ev.target.value=''; if(!file) return;
+  if(!/\.svg$/i.test(file.name) || file.type!=='image/svg+xml'){ setLogoMsg('Formato não aceito. Envie apenas SVG (.svg). PNG, JPG e WebP são rejeitados.', true); return; }
+  if(file.size > 512*1024){ setLogoMsg('Arquivo muito grande (máximo 512 KB).', true); return; }
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const r = sanitizeSvg(String(reader.result));
+    if(r.error){ setLogoMsg(r.error, true); return; }
+    setLogo(r.svg); setLogoMsg('SVG validado e sanitizado. Clique em Salvar para publicar.');
+  };
+  reader.readAsText(file);
+}
+
+/* ================= LÍDERES ================= */
+let newLeaderPhoto = null;
+function handleLeaderPhoto(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{ newLeaderPhoto = reader.result; document.getElementById('ldPhotoPreview').src = reader.result; };
+  reader.readAsDataURL(file);
+}
+function addLeader(){
+  const name = document.getElementById('ldName').value.trim();
+  if(!name){ alert('Digite o nome do líder'); return; }
+  state.leaders.push({
+    id:uid(), name, photo:newLeaderPhoto,
+    email:document.getElementById('ldEmail').value, whatsapp:document.getElementById('ldWhats').value,
+    ministries:document.getElementById('ldMinistry').value.split(';').map(s=>s.trim()).filter(Boolean),
+    role:document.getElementById('ldRole').value || 'Líder', type:document.getElementById('ldType').value,
+    ageMin:document.getElementById('ldAgeMin').value, ageMax:document.getElementById('ldAgeMax').value,
+    responsavel:document.getElementById('ldResp').value, status:'active'
+  });
+  (state.leaders[state.leaders.length-1].ministries||[]).forEach(m=>{ if(!state.ministries.some(x=>x.toLowerCase()===m.toLowerCase())) state.ministries.push(m); });
+  ['ldName','ldEmail','ldWhats','ldMinistry','ldRole','ldAgeMin','ldAgeMax'].forEach(i=>document.getElementById(i).value='');
+  newLeaderPhoto = null; document.getElementById('ldPhotoPreview').src='';
+  save(); renderAll();
+}
+function removeLeader(id){
+  state.leaders = state.leaders.filter(l=>l.id!==id);
+  state.rules = state.rules.filter(r=>!(['lider','responsavel'].includes(r.action.kind) && r.action.ref===id));
+  state.cells.forEach(c=>{ c.leaderIds = (c.leaderIds||[]).filter(x=>x!==id); });
+  state.responses.forEach(r=>r.assignments.forEach(a=>{ if(a.leaderId===id) a.leaderId = null; a.candidateIds = (a.candidateIds||[]).filter(x=>x!==id); }));
+  state.serviceInterests.forEach(i=>{ if(i.leaderId===id) i.leaderId = null; });
+  save(); renderAll();
+}
+function leaderAvatar(l, size=36){
+  return l.photo ? `<img class="leader-avatar" style="width:${size}px;height:${size}px;" src="${l.photo}">`
+    : `<span class="leader-avatar" style="width:${size}px;height:${size}px;">${ic('users',Math.round(size*0.5))}</span>`;
+}
+function cellsOfLeader(id){ return state.cells.filter(c=>(c.leaderIds||[]).includes(id)); }
+function renderLeaders(){
+  const wrap = document.getElementById('leadersList');
+  wrap.innerHTML = state.leaders.length ? state.leaders.map(l=>`
+    <div class="leader-row">${leaderAvatar(l)}
+      <div style="flex:1;"><div class="nm">${esc(l.name)} <span style="color:var(--muted); font-weight:400; font-size:11.5px;">${esc(LEADER_TYPES[l.type]||l.role||'')}</span></div>
+      <div class="mn">${(l.ministries||[]).length?esc(l.ministries.join(', ')):'sem ministério'}${cellsOfLeader(l.id).length?' · células: '+esc(cellsOfLeader(l.id).map(c=>c.name).join(', ')):''}${(l.ageMin||l.ageMax)?` · ${l.ageMin||'0'}–${l.ageMax||'∞'} anos`:''} · ${l.responsavel==='secundario'?'secundário':'principal'}</div></div>
+    <div class="icon-btn" onclick="removeLeader('${l.id}')">${ic('x',14)}</div></div>`).join('') : `<div class="empty">Nenhum líder cadastrado ainda.</div>`;
+}
+
+/* ================= CÉLULAS ================= */
+let newCellLeaders = [];
+function renderCellLeaderChips(){
+  const el = document.getElementById('cLeaders');
+  el.innerHTML = state.leaders.length ? state.leaders.map(l=>`<button class="ichoice ${newCellLeaders.includes(l.id)?'picked':''}" onclick="toggleCellLeader('${l.id}')">${esc(l.name)}</button>`).join('') : `<div class="empty" style="padding:0;">Cadastre líderes primeiro.</div>`;
+}
+function toggleCellLeader(id){ const i=newCellLeaders.indexOf(id); if(i>-1) newCellLeaders.splice(i,1); else newCellLeaders.push(id); renderCellLeaderChips(); }
+function addCell(){
+  const name = document.getElementById('cName').value.trim();
+  if(!name){ alert('Digite o nome da célula'); return; }
+  state.cells.push({id:uid(), name, leaderIds:[...newCellLeaders], day:document.getElementById('cDay').value, time:document.getElementById('cTime').value,
+    region:document.getElementById('cRegion').value.trim(), ageMin:document.getElementById('cAgeMin').value, ageMax:document.getElementById('cAgeMax').value, status:document.getElementById('cStatus').value});
+  ['cName','cDay','cTime','cRegion','cAgeMin','cAgeMax'].forEach(i=>document.getElementById(i).value=''); newCellLeaders = [];
+  save(); renderAll();
+}
+function toggleCellStatus(id){ const c=cellById(id); if(c){ c.status = c.status==='inactive'?'active':'inactive'; save(); renderAll(); } }
+function removeCell(id){
+  state.cells = state.cells.filter(c=>c.id!==id);
+  state.rules = state.rules.filter(r=>!(r.action.kind==='celula' && r.action.ref===id));
+  state.responses.forEach(r=>r.assignments.forEach(a=>{ if(a.cellId===id){ a.cellId=null; a.target='Célula'; } }));
+  save(); renderAll();
+}
+function renderCells(){
+  renderCellLeaderChips();
+  const wrap = document.getElementById('cellsList');
+  wrap.innerHTML = state.cells.length ? state.cells.map(c=>{
+    const ls = (c.leaderIds||[]).map(id=>leaderById(id)).filter(Boolean).map(l=>l.name);
+    const meta = [c.day, c.time, c.region, (c.ageMin||c.ageMax)?`${c.ageMin||'0'}–${c.ageMax||'∞'} anos`:'', ls.length?'líder(es): '+ls.join(', '):'sem líder'].filter(Boolean).map(esc).join(' · ');
+    return `<div class="leader-row"><div style="flex:1;"><div class="nm">${esc(c.name)} <span class="tag ${c.status==='inactive'?'purple':'orange'}">${c.status==='inactive'?'Inativa':'Ativa'}</span></div><div class="mn">${meta}</div></div>
+      <button class="btn btn-ghost" style="padding:6px 10px; font-size:12.5px;" onclick="toggleCellStatus('${c.id}')">${c.status==='inactive'?'Ativar':'Desativar'}</button>
+      <div class="icon-btn" onclick="removeCell('${c.id}')">${ic('x',14)}</div></div>`;
+  }).join('') : `<div class="empty">Nenhuma célula cadastrada ainda.</div>`;
+}
+
+/* ================= DISTRIBUIÇÃO ================= */
+function setSelectOptions(id, html){
+  const el = document.getElementById(id); if(!el) return; const prev = el.value; el.innerHTML = html;
+  if([...el.options].some(o=>o.value===prev)) el.value = prev;
+}
+function ministryNames(){
+  const set = new Set(state.ministries);
+  state.leaders.forEach(l=>(l.ministries||[]).forEach(m=>m && set.add(m)));
+  return [...set];
+}
+function fillRuleValues(){
+  const qid = document.getElementById('ruleQ').value; const q = state.questions.find(q=>q.id===qid);
+  const opts = !q ? [] : (q.type==='boolean'||q.type==='cell') ? ['Sim','Não'] : (q.options||[]);
+  setSelectOptions('ruleQVal', opts.length ? opts.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('') : `<option value="">—</option>`);
+  document.getElementById('ruleQVal').style.display = q ? '' : 'none';
+}
+function fillRuleTarget(){
+  const kind = document.getElementById('ruleKind').value; let html = '';
+  if(kind==='celula') html = state.cells.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  else html = state.leaders.filter(l=>['acompanhamento','outro'].includes(l.type)).map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join('');
+  setSelectOptions('ruleTarget', html || `<option value="">Nada cadastrado para esta opção</option>`);
+}
+function fillRuleForm(){
+  setSelectOptions('ruleQ', `<option value="">Resposta específica: nenhuma</option>` + state.questions.filter(x=>['single','multi','boolean','cell'].includes(x.type)).map(x=>`<option value="${x.id}">Resposta: ${esc(x.label)}</option>`).join(''));
+  fillRuleValues(); fillRuleTarget();
+}
+function fillServirRuleForm(){
+  setSelectOptions('srMinistry', ministryNames().map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('') || `<option value="">Nenhum ministério</option>`);
+  const ml = state.leaders.filter(l=>l.type==='ministerio' && l.status!=='inactive');
+  setSelectOptions('srLeader', ml.map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join('') || `<option value="">Cadastre um líder de ministério</option>`);
+}
+function toggleDist(key){ state.distSettings[key] = !state.distSettings[key]; save(); renderAll(); }
+function removeRule(id){ state.rules = state.rules.filter(r=>r.id!==id); save(); renderAll(); }
+function addRule(){
+  const v = id=>document.getElementById(id).value;
+  const conds = {ageMin:v('ruleMin'), ageMax:v('ruleMax'), cell:v('ruleCell'), qid:v('ruleQ'), qval:v('ruleQ')?v('ruleQVal'):''};
+  if(!(conds.ageMin || conds.ageMax || conds.cell || conds.qid)){ alert('Defina pelo menos uma condição.'); return; }
+  const kind = v('ruleKind'), ref = v('ruleTarget');
+  if(!ref){ alert('Escolha o destino da atribuição (cadastre líderes de acompanhamento ou células antes).'); return; }
+  state.rules.push({id:uid(), scope:'visitante', conds, action:{kind, ref}});
+  document.getElementById('ruleMin').value=''; document.getElementById('ruleMax').value='';
+  save(); renderAll();
+}
+function addServirRule(){
+  const v = id=>document.getElementById(id).value;
+  const ministry = v('srMinistry'), leader = v('srLeader');
+  if(!ministry || !leader){ alert('Escolha o ministério e o líder.'); return; }
+  state.rules.push({id:uid(), scope:'servir', conds:{interest:ministry, ageMin:v('srMin'), ageMax:v('srMax'), cell:'', qid:'', qval:''}, action:{kind:'lider', ref:leader}});
+  document.getElementById('srMin').value=''; document.getElementById('srMax').value='';
+  save(); renderAll();
+}
+function addMinistry(){
+  const el = document.getElementById('ministryNew'); const n = el.value.trim(); if(!n) return;
+  if(!ministryNames().some(m=>m.toLowerCase()===n.toLowerCase())) state.ministries.push(n);
+  el.value = ''; save(); renderAll();
+}
+function removeMinistry(i){ state.ministries.splice(i,1); save(); renderAll(); }
+function moveRule(id, dir, scope){
+  const list = state.rules.filter(r=>(r.scope==='servir')===(scope==='servir'));
+  const i = list.findIndex(r=>r.id===id), j = i+dir; if(i<0||j<0||j>=list.length) return;
+  const a = state.rules.indexOf(list[i]), b = state.rules.indexOf(list[j]);
+  [state.rules[a], state.rules[b]] = [state.rules[b], state.rules[a]]; save(); renderAll();
+}
+function describeRule(rule){
+  const c = rule.conds||{}; const parts = [];
+  if(c.ageMin||c.ageMax) parts.push(`idade ${c.ageMin||'0'}–${c.ageMax||'∞'}`);
+  if(c.cell==='sim') parts.push('interesse em célula = Sim');
+  if(c.qid){ const q = state.questions.find(q=>q.id===c.qid); parts.push(`${esc(q?q.label:'pergunta removida')} = ${esc(c.qval)}`); }
+  const a = rule.action||{}; let dest = '—';
+  if(a.kind==='celula'){ const cl = cellById(a.ref); dest = `célula ${cl?esc(cl.name):'removida'}`; }
+  else { const l = leaderById(a.ref); dest = `líder ${l?esc(l.name):'removido'}`; }
+  return `SE ${parts.join(' E ')} → ${dest}`;
+}
+function describeServirRule(rule){
+  const c = rule.conds||{}; const l = leaderById(rule.action && rule.action.ref);
+  return `${esc(c.interest)}${(c.ageMin||c.ageMax)?` · idade ${c.ageMin||'0'}–${c.ageMax||'∞'}`:''} → líder ${l?esc(l.name):'removido'}`;
+}
+let distTab = 'visitante';
+function setDistTab(t){ distTab = t; renderDistribution(); }
+function renderDistribution(){
+  document.getElementById('dtab-visitante').classList.toggle('on', distTab==='visitante');
+  document.getElementById('dtab-servir').classList.toggle('on', distTab==='servir');
+  document.getElementById('dist-visitante').style.display = distTab==='visitante' ? 'block' : 'none';
+  document.getElementById('dist-servir').style.display = distTab==='servir' ? 'block' : 'none';
+  document.getElementById('tgMin').classList.toggle('on', !!state.distSettings.autoMinistry);
+  document.getElementById('tgCell').classList.toggle('on', !!state.distSettings.autoCell);
+  fillRuleForm(); fillServirRuleForm();
+  const arrows = (id, sc)=>`<div style="display:flex; gap:6px;"><div class="icon-btn" onclick="moveRule('${id}',-1,'${sc}')">${ic('arrow-up',14)}</div><div class="icon-btn" onclick="moveRule('${id}',1,'${sc}')">${ic('arrow-down',14)}</div><div class="icon-btn" onclick="removeRule('${id}')">${ic('x',14)}</div></div>`;
+  const vr = state.rules.filter(r=>r.scope!=='servir');
+  document.getElementById('rulesList').innerHTML = vr.length ? vr.map((r,i)=>`<div class="rule-row"><span><b>${i+1}.</b> ${describeRule(r)}</span>${arrows(r.id,'visitante')}</div>`).join('') : `<div class="empty">Nenhuma regra personalizada. Os visitantes vão para o líder de acompanhamento principal.</div>`;
+  const sr = state.rules.filter(r=>r.scope==='servir');
+  document.getElementById('srRulesList').innerHTML = sr.length ? sr.map((r,i)=>`<div class="rule-row"><span><b>${i+1}.</b> ${describeServirRule(r)}</span>${arrows(r.id,'servir')}</div>`).join('') : `<div class="empty">Nenhuma regra personalizada. O interesse vai para o líder cadastrado no ministério.</div>`;
+  const fups = state.responses.map(followupOf).filter(Boolean);
+  const cellAsg = []; state.responses.forEach(r=>(r.assignments||[]).forEach(a=>{ if(a.kind==='celula') cellAsg.push(a); }));
+  document.getElementById('distStats').innerHTML = state.leaders.filter(l=>['acompanhamento','outro'].includes(l.type)).map(l=>`<div class="legend-item"><span>${esc(l.name)} <span style="color:var(--muted); font-size:12px;">(${esc(LEADER_TYPES[l.type]||'')})</span></span><strong>${fups.filter(a=>a.leaderId===l.id).length}</strong></div>`).join('') +
+    `<div class="legend-item"><span>Sem responsável</span><strong>${fups.filter(a=>!a.leaderId).length}</strong></div>`;
+  document.getElementById('distCells').innerHTML = state.cells.map(c=>`<div class="legend-item"><span>${esc(c.name)}</span><strong>${cellAsg.filter(a=>a.cellId===c.id).length}</strong></div>`).join('') +
+    `<div class="legend-item"><span>Célula a definir</span><strong>${cellAsg.filter(a=>!a.cellId).length}</strong></div>`;
+  const names = ministryNames();
+  document.getElementById('ministryList').innerHTML = names.length ? names.map(m=>{
+    const ls = state.leaders.filter(l=>l.status!=='inactive' && (l.ministries||[]).some(x=>String(x).toLowerCase()===m.toLowerCase()));
+    const idx = state.ministries.findIndex(x=>x===m);
+    return `<div class="rule-row"><span><b>${esc(m)}</b> <span style="color:var(--muted);">· ${ls.length ? ls.map(l=>esc(l.name)).join(', ') : 'sem líder cadastrado'}</span></span>${idx>-1?`<div class="icon-btn" onclick="removeMinistry(${idx})">${ic('x',14)}</div>`:''}</div>`;
+  }).join('') : `<div class="empty">Nenhum ministério cadastrado.</div>`;
+}
+
+function fmtHM(ms){
+  if(ms==null || isNaN(ms)) return '—';
+  const m = Math.max(0, Math.round(ms/60000)); if(m<60) return m+' min';
+  const h = Math.floor(m/60); if(h<48) return h+'h'+String(m%60).padStart(2,'0');
+  return Math.round(h/24)+' d';
+}
+function fmtClock(iso){
+  if(!iso) return '—'; const d = new Date(iso); const tm = d.toLocaleTimeString('pt-BR',{hour:'2-digit', minute:'2-digit'});
+  return d.toDateString()===new Date().toDateString() ? tm : d.toLocaleDateString('pt-BR',{day:'2-digit', month:'2-digit'})+' '+tm;
+}
+function leaderName(id){ const l = leaderById(id); return l ? esc(l.name) : '<span style="color:var(--muted)">Sem responsável</span>'; }
+function vBadge(s){ return `<span class="tag ${V_TONE[s]||'mute'}">${STATUS_LABELS[s]||s}</span>`; }
+function mBadge(s){ return `<span class="tag ${M_TONE[s]||'mute'}">${MIN_LABELS[s]||s}</span>`; }
+function visitorMetrics(list){
+  const now = Date.now(); const rows = list.map(r=>({r, f:followupOf(r)})).filter(x=>x.f);
+  const by = s=>rows.filter(x=>x.f.status===s).length;
+  const contacted = rows.filter(x=>x.f.firstContactAt);
+  return {total:list.length, aguardando:by('pendente'), contatados:by('contatado'), acomp:by('acompanhamento'), concluidos:by('concluido'), naoRespondeu:by('nao_respondeu'),
+    semResp:rows.filter(x=>!x.f.leaderId).length, atrasados:rows.filter(x=>x.f.status==='pendente' && now-new Date(x.r.date)>LATE_MS).length,
+    taxa:pct(contacted.length, list.length), tempo:avg(contacted.map(x=>new Date(x.f.firstContactAt)-new Date(x.r.date)))};
+}
+function interestMetrics(list){
+  const by = s=>list.filter(i=>i.status===s).length; const contacted = list.filter(i=>i.firstContactAt);
+  return {total:list.length, recebido:by('recebido'), encaminhado:by('encaminhado'), contatado:by('contatado'), processo:by('em_processo'), concluido:by('concluido'), semInteresse:by('sem_interesse'),
+    semContato:list.filter(i=>!i.firstContactAt && i.status!=='sem_interesse').length, taxa:pct(contacted.length, list.length),
+    tempo:avg(contacted.map(i=>new Date(i.firstContactAt)-new Date(i.createdAt)))};
+}
+function renderDashboard(){
+  updateGlobalRefs(state.responses.length);
+  const days = currentPeriodDays; const now = Date.now();
+  /* --- Acompanhamento de visitantes --- */
+  const vis = state.responses.filter(r=>inPeriod(r, days, 0)); const vm = visitorMetrics(vis);
+  document.getElementById('pVisStats').innerHTML =
+    statCard('Total de visitantes', vm.total, 'users', 'orange') + statCard('Aguardando contato', vm.aguardando, 'clock', 'purple') +
+    statCard('Visitantes contatados', vm.taxa+'%', 'check-circle', 'orange') + statCard('Tempo médio até 1º contato', fmtHM(vm.tempo), 'activity', 'purple');
+  document.getElementById('pVisSituation').innerHTML = vm.total ?
+    lg('Contatados', vm.contatados) + lg('Em acompanhamento', vm.acomp) + lg('Concluídos', vm.concluidos) + lg('Não respondeu', vm.naoRespondeu) +
+    lg('Sem responsável', vm.semResp) + lg('Acompanhamento atrasado', vm.atrasados) : `<div class="empty">Sem visitantes no período.</div>`;
+  const recent = [...vis].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,8);
+  document.getElementById('pVisTable').innerHTML = recent.length ? `<table class="resp"><tr><th>Visitante</th><th>Responsável</th><th>Status</th><th>Primeiro contato</th><th>Tempo</th></tr>` + recent.map(r=>{
+    const f = followupOf(r);
+    return `<tr><td>${esc(nameOf(r))}</td><td>${leaderName(f&&f.leaderId)}</td><td>${f?vBadge(f.status):'—'}</td><td>${f&&f.firstContactAt?fmtClock(f.firstContactAt):'—'}</td><td>${f&&f.firstContactAt?fmtHM(new Date(f.firstContactAt)-new Date(r.date)):(f&&f.status==='pendente'?'aguardando '+fmtHM(now-new Date(r.date)):'—')}</td></tr>`;
+  }).join('') + `</table>` : `<div class="empty">Sem visitantes no período.</div>`;
+  /* --- Interesse em servir --- */
+  const ints = state.serviceInterests.filter(i=>inPeriod({date:i.createdAt}, days, 0)); const im = interestMetrics(ints);
+  document.getElementById('pSrvStats').innerHTML =
+    statCard('Pessoas interessadas em servir', new Set(ints.map(i=>i.visitorId!=null?'v'+i.visitorId:(i.visitorKey||i.id))).size, 'heart', 'orange') + statCard('Interesses sem contato', im.semContato, 'clock', 'purple') +
+    statCard('Interesses contatados', im.taxa+'%', 'check-circle', 'orange') + statCard('Tempo médio até contato', fmtHM(im.tempo), 'activity', 'purple');
+  document.getElementById('pSrvSituation').innerHTML = im.total ?
+    lg('Total de interesses', im.total) + lg('Interesse recebido', im.recebido) + lg('Encaminhados', im.encaminhado) + lg('Contatados', im.contatado) +
+    lg('Em processo', im.processo) + lg('Concluídos', im.concluido) + lg('Sem interesse', im.semInteresse) : `<div class="empty">Sem interesses no período.</div>`;
+  const recentI = [...ints].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,8);
+  document.getElementById('pSrvTable').innerHTML = recentI.length ? `<table class="resp"><tr><th>Pessoa</th><th>Ministério</th><th>Responsável</th><th>Status</th><th>Primeiro contato</th></tr>` + recentI.map(i=>
+    `<tr><td>${esc(interestPerson(i).name)}</td><td>${esc(i.ministry)}</td><td>${leaderName(i.leaderId)}</td><td>${mBadge(i.status)}</td><td>${i.firstContactAt?fmtHM(new Date(i.firstContactAt)-new Date(i.createdAt)):'Sem contato'}</td></tr>`).join('') + `</table>` : `<div class="empty">Sem interesses no período.</div>`;
+  const byMin = {}; ints.forEach(i=>{ (byMin[i.ministry] = byMin[i.ministry] || []).push(i); });
+  document.getElementById('pSrvByMin').innerHTML = Object.keys(byMin).length ? `<table class="resp"><tr><th>Ministério</th><th>Interesses</th><th>Taxa de contato</th><th>Tempo médio</th><th>Pendências</th></tr>` + Object.entries(byMin).sort((a,b)=>b[1].length-a[1].length).map(([m,l])=>{
+    const mm = interestMetrics(l); return `<tr><td>${esc(m)}</td><td>${l.length}</td><td>${mm.taxa}%</td><td>${fmtHM(mm.tempo)}</td><td>${mm.semContato}</td></tr>`;
+  }).join('') + `</table>` : `<div class="empty">Sem interesses no período.</div>`;
+}
+
+/* ================= AGENDA DE CULTOS ================= */
+function addServiceType(){
+  const name = document.getElementById('stName').value.trim();
+  if(!name){ alert('Digite o nome do tipo de culto/evento.'); return; }
+  state.serviceTypes.push({id:uid(), name, active:true});
+  document.getElementById('stName').value = '';
+  save(); renderAll();
+}
+function toggleServiceType(id){ const t=state.serviceTypes.find(t=>t.id===id); if(t){ t.active=!t.active; save(); renderAll(); } }
+function removeServiceType(id){
+  state.serviceTypes = state.serviceTypes.filter(t=>t.id!==id);
+  state.services = state.services.filter(sv=>sv.serviceTypeId!==id);
+  save(); renderAll();
+}
+function addChurchService(){
+  const typeId = document.getElementById('svType').value;
+  if(!typeId){ alert('Cadastre um tipo de culto/evento primeiro.'); return; }
+  state.services.push({id:uid(), dayOfWeek:Number(document.getElementById('svDay').value), startTime:document.getElementById('svTime').value||'00:00', serviceTypeId:typeId, active:true});
+  save(); renderAll();
+}
+function toggleService(id){ const sv=state.services.find(s=>s.id===id); if(sv){ sv.active=!sv.active; save(); renderAll(); } }
+function removeService(id){ state.services = state.services.filter(s=>s.id!==id); save(); renderAll(); }
+function serviceLabel(sv){ const t = state.serviceTypes.find(t=>t.id===sv.serviceTypeId); return `${WEEKDAYS[sv.dayOfWeek]} · ${sv.startTime} · ${t?esc(t.name):'—'}`; }
+function activeServices(){ return state.services.filter(sv=>sv.active && state.serviceTypes.some(t=>t.id===sv.serviceTypeId && t.active)); }
+function renderAgenda(){
+  setSelectOptions('svType', state.serviceTypes.filter(t=>t.active).map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('') || `<option value="">Cadastre um tipo</option>`);
+  document.getElementById('serviceTypesList').innerHTML = state.serviceTypes.length ? state.serviceTypes.map(t=>`
+    <div class="rule-row"><span>${esc(t.name)} ${t.active?'':'<span style=\'color:var(--muted)\'>(inativo)</span>'}</span>
+      <div style="display:flex; gap:6px;"><button class="btn btn-ghost" style="padding:4px 10px; font-size:12px;" onclick="toggleServiceType('${t.id}')">${t.active?'Desativar':'Ativar'}</button><div class="icon-btn" onclick="removeServiceType('${t.id}')">${ic('x',14)}</div></div></div>`).join('') : `<div class="empty">Nenhum tipo cadastrado.</div>`;
+  document.getElementById('servicesList').innerHTML = state.services.length ? `<table class="resp"><tr><th>Dia</th><th>Horário</th><th>Tipo</th><th>Status</th><th></th></tr>` +
+    state.services.slice().sort((a,b)=>a.dayOfWeek-b.dayOfWeek||a.startTime.localeCompare(b.startTime)).map(sv=>{ const t=state.serviceTypes.find(t=>t.id===sv.serviceTypeId);
+      return `<tr><td>${WEEKDAYS[sv.dayOfWeek]}</td><td>${sv.startTime}</td><td>${t?esc(t.name):'<span style="color:var(--muted)">removido</span>'}</td>
+      <td><span class="dotc" style="background:${sv.active?'var(--success)':'#5a5468'}"></span>${sv.active?'Ativo':'Inativo'}</td>
+      <td style="display:flex; gap:6px;"><button class="btn btn-ghost" style="padding:4px 10px; font-size:12px;" onclick="toggleService('${sv.id}')">${sv.active?'Desativar':'Ativar'}</button><div class="icon-btn" onclick="removeService('${sv.id}')">${ic('x',14)}</div></td></tr>`;
+    }).join('') + `</table>` : `<div class="empty">Nenhum culto cadastrado ainda.</div>`;
+}
+function responsesByService(list){
+  const svs = activeServices();
+  return svs.map(sv=>{
+    const [h,m] = sv.startTime.split(':').map(Number); const startMin = h*60+(m||0);
+    const n = list.filter(r=>{ const d = new Date(r.date); if(d.getDay()!==sv.dayOfWeek) return false; const mins = d.getHours()*60+d.getMinutes(); return Math.abs(mins-startMin)<=90; }).length;
+    return {sv, n};
+  });
+}
+
+/* ================= DASHBOARD / VISITANTES / INSIGHTS ================= */
+let currentPeriodDays = 30;
+let insPeriodDays = 30;
+let repPeriodDays = 30;
+let repType = 'geral';
+function setPeriod(days){
+  currentPeriodDays = days;
+  document.querySelectorAll('#periodFilters button').forEach(b=>b.classList.toggle('on', Number(b.dataset.days)===days));
+  renderAll();
+}
+
+function setInsPeriod(days){ insPeriodDays = days; document.querySelectorAll('#insPeriodFilters button').forEach(b=>b.classList.toggle('on', Number(b.dataset.days)===days)); renderInsightsPage(); }
+function setRepPeriod(days){ repPeriodDays = days; document.querySelectorAll('#repPeriodFilters button').forEach(b=>b.classList.toggle('on', Number(b.dataset.days)===days)); renderReports(); }
+function inPeriod(resp, days, offsetDays=0){
+  if(days===0) return offsetDays===0;
+  const ageMs = Date.now() - new Date(resp.date).getTime() - offsetDays*86400000;
+  return ageMs>=0 && ageMs <= days*86400000;
+}
+function nameOf(resp){ const q = state.questions.find(q=>q.type==='short'); return (q && resp.answers[q.id]) || 'Visitante'; }
+function brl(n){ return 'R$ '+Number(n||0).toLocaleString('pt-BR'); }
+function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function updateGlobalRefs(total){
+  document.getElementById('sideName').textContent = state.appearance.churchName;
+  renderGlobal(total);
+}
+function renderGlobal(total){
+  if(!state.churches) state.churches = JSON.parse(JSON.stringify(DEFAULT_STATE.churches));
+  const cs = state.churches;
+  const live = cs.find(c=>c.live); if(live){ live.name = state.appearance.churchName; live.resp = total; }
+  const netResp = cs.reduce((a,c)=>a+(Number(c.resp)||0),0);
+  const paid = cs.filter(c=>c.paid), unpaid = cs.filter(c=>!c.paid);
+  const mrrPaid = paid.reduce((a,c)=>a+Number(c.valor||0),0);
+  const mrrOpen = unpaid.reduce((a,c)=>a+Number(c.valor||0),0);
+  document.getElementById('gMrr').textContent = brl(mrrPaid);
+  document.getElementById('gMrrNote').textContent = mrrOpen ? brl(mrrOpen)+' em aberto' : 'tudo em dia';
+  document.getElementById('gActive').textContent = cs.length;
+  document.getElementById('gNew').textContent = cs.filter(c=>c.isNew).length;
+  document.getElementById('gDelinq').textContent = unpaid.length;
+  document.getElementById('gDelinqNote').textContent = unpaid.length ? 'não pagaram' : '';
+  document.getElementById('globalRespCount').textContent = netResp;
+  const plans = {}; cs.forEach(c=>{ const k=c.plan||'Sem plano'; plans[k]=(plans[k]||0)+1; });
+  document.getElementById('gPlans').innerHTML = Object.keys(plans).map((k,i)=>`<div class="legend-item"><span><i class="dotc" style="background:var(${i%2?'--purple':'--orange'})"></i>${esc(k)}</span><strong>${plans[k]} ${plans[k]===1?'igreja':'igrejas'}</strong></div>`).join('');
+  document.getElementById('gTable').innerHTML = '<tr><th>Igreja</th><th>Plano</th><th>Status</th><th>Respostas</th><th>Valor mensal</th><th>Pagamento</th><th></th></tr>' + cs.map(c=>`
+    <tr><td>${esc(c.name)}${c.email?`<div style="font-size:11.5px; color:var(--muted)">${esc(c.email)}</div>`:''}</td>
+    <td>${c.plan?`<span class="tag orange">${esc(c.plan)}</span>`:'—'}</td>
+    <td><span class="dotc" style="background:${c.paid?'var(--success)':'#5a5468'}"></span>${c.paid?'Ativa':'Inadimplente'}</td>
+    <td>${Number(c.resp)||0}</td>
+    <td>${brl(c.valor)}</td>
+    <td><button class="btn ${c.paid?'btn-ghost':'btn-primary'}" style="padding:6px 12px; font-size:12.5px;" onclick="togglePaid('${c.id}')">${c.paid?'Pago':'Não pago'}</button></td>
+    <td>${c.live?'':`<button class="btn btn-ghost" style="padding:6px 10px; font-size:12.5px;" onclick="removeChurch('${c.id}')">Remover</button>`}</td></tr>`).join('');
+}
+function toggleChurchForm(){ const f=document.getElementById('churchForm'); f.style.display = f.style.display==='none'?'block':'none'; }
+function addChurch(){
+  const name=document.getElementById('ncName').value.trim(), email=document.getElementById('ncEmail').value.trim(), valor=document.getElementById('ncValor').value, plan=document.getElementById('ncPlano').value.trim();
+  if(!name||!email||valor===''){ alert('Preencha nome, e-mail e valor cobrado.'); return; }
+  state.churches.push({id:'c'+Date.now(), name, email, plan, valor:Number(valor), paid:false, resp:0, live:false, isNew:true, when:'Hoje'});
+  ['ncName','ncEmail','ncValor','ncPlano'].forEach(i=>document.getElementById(i).value='');
+  toggleChurchForm(); save(); renderGlobal(state.responses.length);
+}
+function togglePaid(id){ const c=state.churches.find(c=>c.id===id); if(c){ c.paid=!c.paid; save(); renderGlobal(state.responses.length); } }
+function removeChurch(id){ if(!confirm('Remover esta igreja?')) return; state.churches=state.churches.filter(c=>c.id!==id); save(); renderGlobal(state.responses.length); }
+function pct(part, whole){ return whole ? Math.round((part/whole)*100) : 0; }
+function fmtDur(ms){
+  if(ms==null) return '—';
+  const m = ms/60000; if(m<60) return Math.max(1,Math.round(m))+' min';
+  const h = m/60; if(h<48) return (Math.round(h*10)/10)+' h';
+  return (Math.round(h/24*10)/10)+' d';
+}
+function avg(a){ return a.length ? a.reduce((x,y)=>x+y,0)/a.length : null; }
+function everStatus(r, st){
+  return r.status===st || (r.history||[]).some(h=>h.status===st);
+}
+function maxRank(r){
+  let m = RANK[r.status]||0;
+  (r.history||[]).forEach(h=>{ m = Math.max(m, RANK[h.status]||0); });
+  return m;
+}
+function returnMap(){
+  const sorted = [...state.responses].sort((a,b)=>new Date(a.date)-new Date(b.date)); const last = {}; const info = {};
+  sorted.forEach(r=>{
+    info[r.id] = {isReturn:false, gap:null, returnedLater:false};
+    if(!r.visitorKey) return;
+    const prev = last[r.visitorKey];
+    if(prev){ info[r.id].isReturn = true; info[r.id].gap = (new Date(r.date)-new Date(prev.date))/86400000; info[prev.id].returnedLater = true; }
+    last[r.visitorKey] = r;
+  });
+  return info;
+}
+function lg(label, val){ return `<div class="legend-item"><span>${label}</span><strong>${val}</strong></div>`; }
+function topEntries(obj){ return Object.entries(obj).sort((a,b)=>b[1]-a[1]); }
+function statCard(label, val, icon, tone){ return `<div class="card stat"><div class="stat-top"><div class="k">${label}</div><div class="ic ic-${tone}">${ic(icon)}</div></div><div class="v" style="font-size:24px;">${val}</div></div>`; }
+const BRACKETS = [[0,12,'0–12'],[13,17,'13–17'],[18,25,'18–25'],[26,40,'26–40'],[41,200,'41+']];
+
+/* ================= INSIGHTS (página própria) ================= */
+function renderInsightsPage(){
+  const days = insPeriodDays;
+  const filtered = state.responses.filter(r=>inPeriod(r, days, 0));
+  const previous = days>0 ? state.responses.filter(r=>inPeriod(r, days, days)) : [];
+  const total = filtered.length;
+  const box = document.getElementById('insightsBox');
+  if(!total){ box.innerHTML = `<div class="insight-card"><div class="ins-row"><span class="ins-tag">SEM DADOS</span></div>Sem respostas suficientes no período selecionado.</div>`; return; }
+
+  const rmap = returnMap();
+  const recorrentes = filtered.filter(r=>rmap[r.id] && rmap[r.id].isReturn);
+  const taxaRetorno = pct(recorrentes.length, total);
+  const intCounts = {}; filtered.forEach(r=>interestsOf(r).forEach(i=>{ intCounts[i]=(intCounts[i]||0)+1; }));
+  const topInts = topEntries(intCounts);
+  const cellWant = filtered.filter(wantsCell);
+  const semResp = filtered.filter(r=>!hasFollowLeader(r));
+  const pendItems = filtered.filter(r=>r.status==='pendente');
+  const contactMs = filtered.filter(r=>r.firstContactAt).map(r=>new Date(r.firstContactAt)-new Date(r.date));
+  const w24 = contactMs.filter(t=>t<=24*3600000).length;
+  const atrasadosCount = pendItems.filter(r=>Date.now()-new Date(r.date)>24*3600000).length;
+  function atrasados_ins(){ return atrasadosCount; }
+  const ageQ = state.questions.find(q=>q.type==='age');
+  const originQ = state.questions.find(q=>q.type==='single' && /conheceu|origem/i.test(q.label));
+  const originCounts = {}; if(originQ) filtered.forEach(r=>{ const v=r.answers[originQ.id]; if(v) originCounts[v]=(originCounts[v]||0)+1; });
+  const topOrigin = topEntries(originCounts)[0];
+  const ageCounts = BRACKETS.map(([mn,mx])=>filtered.filter(r=>{const a=ageOf(r); return a!=null && a>=mn && a<=mx;}).length);
+  const topAgeIdx = ageCounts.indexOf(Math.max(...ageCounts));
+
+  const sections = {tendencias:[], perfil:[], origem:[], interesses:[], retorno:[], acompanhamento:[], oportunidades:[], pontos_atencao:[]};
+  const add = (section, c)=>sections[section].push(c);
+
+  add('retorno', {title:'Retorno de visitantes', dado:`Taxa de retorno de ${taxaRetorno}% (${recorrentes.length} recorrentes de ${total}).`,
+    insight: taxaRetorno>=20 ? 'Uma parte relevante dos visitantes está voltando.' : 'Poucos visitantes voltaram neste período.',
+    context:`${total-recorrentes.length} visitante(s) são novos no período.`,
+    recommendation: taxaRetorno>=20 ? 'Acompanhar de perto os recorrentes e convidá-los para células ou ministérios.' : 'Reforçar o contato nos primeiros dias após a visita.'});
+
+  if(days>0){
+    let best = null;
+    BRACKETS.forEach(([mn,mx,lb])=>{
+      const inB = r=>{const a=ageOf(r); return a!=null && a>=mn && a<=mx;};
+      const cur = filtered.filter(inB), pr = previous.filter(inB);
+      if(cur.length>=3){ const g = pr.length ? Math.round(((cur.length-pr.length)/pr.length)*100) : 100; if(!best || Math.abs(g)>Math.abs(best.g)) best = {lb, cur, pr, g}; }
+    });
+    if(best){
+      const withMin = best.cur.filter(r=>interestsOf(r).length).length;
+      add('tendencias', {title:'Visitantes por faixa etária', dado:`${best.cur.length} visitantes de ${best.lb} anos (${best.pr.length} no período anterior).`,
+        insight:`Visitantes de ${best.lb} anos ${best.g>=0?'aumentaram':'caíram'} ${Math.abs(best.g)}% em relação ao período anterior.`,
+        context:`${pct(withMin,best.cur.length)}% desse grupo demonstraram interesse em ministérios.`,
+        recommendation: best.g>=0 ? 'Priorizar o acompanhamento desse grupo e avaliar a capacidade atual dos responsáveis.' : 'Investigar os canais que traziam esse público.'});
+    }
+  }
+
+  if(ageQ) add('perfil', {title:'Composição por idade', dado:`Faixa mais comum: ${BRACKETS[topAgeIdx][2]} anos (${ageCounts[topAgeIdx]} visitantes).`,
+    insight:'A maior parte dos visitantes está concentrada em uma faixa etária.', context:`${pct(ageCounts[topAgeIdx],total)}% do total no período.`,
+    recommendation:'Adequar a linguagem de acolhimento e os ministérios sugeridos a essa faixa.'});
+
+  if(topOrigin && topOrigin[1]>=2){
+    const second = topEntries(originCounts)[1];
+    add('origem', {title:'Origem dos visitantes', dado:`${topOrigin[1]} visitantes (${pct(topOrigin[1],total)}%) chegaram por ${topOrigin[0]}.`,
+      insight:`${topOrigin[0]} é o canal que mais traz visitantes no período.`,
+      context: second ? `O segundo canal é ${second[0]} (${second[1]}).` : 'Não há outro canal com volume relevante.',
+      recommendation:`Reforçar a divulgação em ${topOrigin[0]} e medir o retorno dos demais canais.`});
+  }
+
+  if(topInts.length && topInts[0][1]>=2){
+    const [name, n] = topInts[0];
+    add('interesses', {title:'Ministério mais procurado', dado:`${n} visitantes (${pct(n,total)}%) demonstraram interesse em ${name}.`,
+      insight:`${name} é o ministério com maior procura no período.`, context: topInts[1] ? `Em seguida vem ${topInts[1][0]} (${topInts[1][1]}).` : 'Sem outro ministério relevante no período.',
+      recommendation:`Reforçar o acompanhamento pela liderança de ${name} e verificar a capacidade de receber esses visitantes.`});
+  }
+  if(cellWant.length>0){
+    const semCel = cellWant.filter(r=>!(r.assignments||[]).some(a=>a.kind==='celula' && a.cellId)).length;
+    add('interesses', {title:'Interesse em células', dado:`${cellWant.length} visitantes (${pct(cellWant.length,total)}%) querem participar de uma célula.`,
+      insight: semCel>0 ? `${semCel} deles ainda não estão ligados a uma célula específica.` : 'Todos os interessados já estão ligados a uma célula.',
+      context:`${state.cells.filter(c=>c.status!=='inactive').length} célula(s) ativa(s) cadastrada(s).`,
+      recommendation: semCel>0 ? 'Relacionar esses visitantes a uma célula e avaliar se é preciso abrir novas turmas.' : 'Acompanhar a chegada nas células nas próximas semanas.'});
+  }
+
+  add('acompanhamento', {title:'Velocidade de contato', dado:`${pct(w24,total)}% dos visitantes receberam primeiro contato em até 24h.`,
+    insight: pct(w24,total)<70 ? 'A equipe está demorando mais que o ideal para o primeiro contato.' : 'A equipe está respondendo rápido aos novos visitantes.',
+    context:`${semResp.length} visitante(s) sem responsável no período.`,
+    recommendation: pct(w24,total)<70 ? 'Redistribuir os contatos pendentes e definir um prazo de 24h.' : 'Manter o ritmo atual.'});
+
+  const svStats = responsesByService(filtered).sort((a,b)=>b.n-a.n);
+  if(svStats.length){
+    const top = svStats[0];
+    add('oportunidades', {title:'Cultos com mais visitantes', dado:`${serviceLabel(top.sv)} concentra ${top.n} visitante(s) no período.`,
+      insight:'Esse é o culto/evento com mais chegada de visitantes cadastrado na Agenda.', context: svStats[1] ? `Em seguida, ${serviceLabel(svStats[1].sv)} (${svStats[1].n}).` : 'Sem outro culto com volume relevante.',
+      recommendation:'Garantir equipe de recepção e acompanhamento reforçada nesse horário.'});
+  } else {
+    add('oportunidades', {title:'Cultos com mais visitantes', dado:'Nenhum culto cadastrado na Agenda ainda.', insight:'Sem cultos configurados não é possível cruzar visitantes com horários.', context:'—', recommendation:'Cadastre os cultos da igreja em Agenda de cultos.'});
+  }
+  if(semResp.length>0){
+    const c = {}; semResp.forEach(r=>interestsOf(r).forEach(i=>{ c[i]=(c[i]||0)+1; })); const top = topEntries(c)[0];
+    add('oportunidades', {title:'Visitantes sem responsável', dado:`${semResp.length} visitante(s) (${pct(semResp.length,total)}%) sem nenhum responsável.`,
+      insight:'Esses visitantes não caíram em nenhuma regra de distribuição.', context: top ? `O interesse mais comum entre eles é ${top[0]}.` : 'Sem interesse em ministério registrado.',
+      recommendation: top ? `Cadastrar um líder para ${top[0]} ou criar uma regra de distribuição.` : 'Definir um responsável de acompanhamento geral para esses casos.'});
+  }
+
+  if(atrasados_ins()>0){
+    add('pontos_atencao', {title:'Contatos atrasados', dado:`${atrasados_ins()} visitante(s) pendente(s) há mais de 24h.`,
+      insight:'Esses casos já passaram do prazo ideal de primeiro contato.', context:`${pendItems.length} contato(s) pendente(s) no total no período.`,
+      recommendation:'Priorizar esses contatos hoje e revisar a carga de trabalho de quem está atrasado.'});
+  }
+  if(taxaRetorno<15 && total>=5){
+    add('pontos_atencao', {title:'Retorno baixo', dado:`Taxa de retorno de ${taxaRetorno}% no período.`,
+      insight:'O retorno está abaixo do que se espera de um acompanhamento saudável.', context:`${recorrentes.length} de ${total} visitantes voltaram.`,
+      recommendation:'Revisar o convite para o próximo encontro logo no primeiro contato.'});
+  }
+  if(!sections.pontos_atencao.length){
+    add('pontos_atencao', {title:'Sem pontos críticos', dado:'Nenhum indicador do período ultrapassou os limites de atenção.', insight:'A operação está dentro do esperado neste período.', context:'—', recommendation:'Nenhuma ação urgente necessária.'});
+  }
+
+  const SEC_LABELS = {tendencias:'Tendências', perfil:'Perfil dos visitantes', origem:'Origem', interesses:'Interesses', retorno:'Retorno', acompanhamento:'Acompanhamento', oportunidades:'Oportunidades', pontos_atencao:'Pontos de atenção'};
+  box.innerHTML = Object.keys(SEC_LABELS).map(key=>{
+    const cards = sections[key]; if(!cards.length) return '';
+    return `<h3 class="section-h">${SEC_LABELS[key]}</h3>` + cards.map(c=>`
+      <div class="insight-card"><div class="ins-title">${esc(c.title)}</div>
+        <div class="ins-row"><span class="ins-tag ins-tag-muted">DADO</span>${esc(c.dado)}</div>
+        <div class="ins-row"><span class="ins-tag">INSIGHT</span>${esc(c.insight)}</div>
+        <div class="ins-row"><span class="ins-tag ins-tag-muted">CONTEXTO</span>${esc(c.context)}</div>
+        <div class="ins-row"><span class="ins-tag ins-tag-rec">RECOMENDAÇÃO</span>${esc(c.recommendation)}</div>
+      </div>`).join('');
+  }).join('');
+}
+
+/* ================= RELATÓRIOS ================= */
+const REPORT_TYPES = [['geral','Geral'],['visitantes','Visitantes'],['acompanhamento','Acompanhamento'],['ministerios','Ministérios'],['celulas','Células'],['origem','Origem']];
+function setReportType(t){ repType = t; renderReports(); }
+function varTag(cur, prev){
+  if(!prev) return `<span style="color:var(--muted); font-size:12px;">sem período anterior</span>`;
+  const d = Math.round(((cur-prev)/prev)*100);
+  return `<span style="color:${d>=0?'var(--success)':'#e06666'}; font-size:12px;">${d>=0?'+':''}${d}% vs. período anterior</span>`;
+}
+function renderReports(){
+  const days = repPeriodDays;
+  document.getElementById('reportTabs').innerHTML = REPORT_TYPES.map(([k,lb])=>`<button class="${repType===k?'on':''}" onclick="setReportType('${k}')">${lb}</button>`).join('');
+  const filtered = state.responses.filter(r=>inPeriod(r, days, 0));
+  const previous = days>0 ? state.responses.filter(r=>inPeriod(r, days, days)) : [];
+  const total = filtered.length, totalPrev = previous.length;
+  const body = document.getElementById('reportBody');
+  const periodLabel = days===0 ? 'todo o período' : `últimos ${days} dias`;
+  const rmap = returnMap(); const recorrentes = filtered.filter(r=>rmap[r.id] && rmap[r.id].isReturn);
+
+  if(repType==='geral'){
+    body.innerHTML = `<div class="stat-grid">
+        <div class="card stat"><div class="stat-top"><div class="k">Total de visitantes</div></div><div class="v">${total}</div>${varTag(total,totalPrev)}</div>
+        <div class="card stat"><div class="stat-top"><div class="k">Recorrentes</div></div><div class="v">${recorrentes.length}</div>${varTag(recorrentes.length, previous.filter(r=>rmap[r.id]&&rmap[r.id].isReturn).length)}</div>
+        <div class="card stat"><div class="stat-top"><div class="k">Concluídos</div></div><div class="v">${filtered.filter(r=>everStatus(r,'concluido')).length}</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Sem responsável</div></div><div class="v">${filtered.filter(r=>!hasFollowLeader(r)).length}</div></div>
+      </div>
+      <div class="card" style="margin-top:16px;"><h3 style="margin:0 0 8px; font-size:15px;">Resumo executivo</h3>
+      <p style="color:var(--muted); font-size:13px; margin:0;">Em ${periodLabel}, a igreja recebeu ${total} visitante(s), com taxa de retorno de ${pct(recorrentes.length,total)}%. ${totalPrev?`Isso é ${total>totalPrev?'um aumento':(total<totalPrev?'uma queda':'estável')} em relação aos ${totalPrev} do período anterior.`:''}</p></div>`;
+  } else if(repType==='visitantes'){
+    body.innerHTML = `<div class="card"><div id="repVisitorsTable"></div></div>`;
+    document.getElementById('repVisitorsTable').innerHTML = filtered.length ? `<table class="resp"><tr><th>Nome</th><th>Data</th><th>Status</th></tr>` +
+      [...filtered].reverse().map(r=>`<tr><td>${esc(nameOf(r))}</td><td>${fmtDate(r.date)}</td><td>${STATUS_LABELS[r.status]}</td></tr>`).join('') + `</table>` : `<div class="empty">Sem visitantes no período.</div>`;
+  } else if(repType==='acompanhamento'){
+    const pendItems = filtered.filter(r=>r.status==='pendente');
+    const contactMs = filtered.filter(r=>r.firstContactAt).map(r=>new Date(r.firstContactAt)-new Date(r.date));
+    body.innerHTML = `<div class="stat-grid">
+        <div class="card stat"><div class="stat-top"><div class="k">Tempo médio até 1º contato</div></div><div class="v" style="font-size:22px;">${fmtDur(avg(contactMs))}</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Contatos pendentes</div></div><div class="v">${pendItems.length}</div></div>
+        <div class="card stat"><div class="stat-top"><div class="k">Contatados em até 24h</div></div><div class="v">${pct(contactMs.filter(t=>t<=86400000).length,total)}%</div></div>
+      </div>
+      <div class="card" style="margin-top:16px;"><h3 style="margin:0 0 8px; font-size:15px;">Resumo executivo</h3><p style="color:var(--muted); font-size:13px; margin:0;">${pendItems.length} contato(s) seguem pendentes em ${periodLabel}.</p></div>`;
+  } else if(repType==='ministerios'){
+    const ints = state.serviceInterests.filter(i=>inPeriod({date:i.createdAt}, days, 0)); const byMin = {}; ints.forEach(i=>{ (byMin[i.ministry] = byMin[i.ministry] || []).push(i); });
+    body.innerHTML = `<div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Interesse em servir por ministério</h3>${Object.keys(byMin).length ? `<table class="resp"><tr><th>Ministério</th><th>Interesses</th><th>Taxa de contato</th><th>Tempo médio até contato</th><th>Pendências</th></tr>` + Object.entries(byMin).sort((a,b)=>b[1].length-a[1].length).map(([m,l])=>{ const mm = interestMetrics(l); return `<tr><td>${esc(m)}</td><td>${l.length}</td><td>${mm.taxa}%</td><td>${fmtHM(mm.tempo)}</td><td>${mm.semContato}</td></tr>`; }).join('') + `</table>` : `<div class="empty">Sem interesses em servir no período.</div>`}</div>`;
+  } else if(repType==='celulas'){
+    const asg = []; filtered.forEach(r=>(r.assignments||[]).forEach(a=>{ if(a.kind==='celula') asg.push(a); }));
+    body.innerHTML = `<div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Interessados por célula</h3>${state.cells.length ? state.cells.map(c=>lg(esc(c.name), asg.filter(a=>a.cellId===c.id).length)).join('') + lg('Célula a definir', asg.filter(a=>!a.cellId).length) : `<div class="empty">Nenhuma célula cadastrada.</div>`}</div>`;
+  } else if(repType==='origem'){
+    const originQ = state.questions.find(q=>q.type==='single' && /conheceu|origem/i.test(q.label));
+    const oc = {}; if(originQ) filtered.forEach(r=>{ const v=r.answers[originQ.id]; if(v) oc[v]=(oc[v]||0)+1; });
+    body.innerHTML = `<div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Visitantes por origem</h3>${Object.keys(oc).length?topEntries(oc).map(([k,v])=>lg(esc(k), `${v} · ${pct(v,total)}%`)).join(''):`<div class="empty">Sem respostas de origem no período.</div>`}</div>`;
+  }
+}
+
+function statusOptions(cur){
+  const keys = VISITOR_STATUSES.includes(cur) ? VISITOR_STATUSES : [...VISITOR_STATUSES, cur];
+  return keys.map(k=>`<option value="${k}" ${cur===k?'selected':''}>${STATUS_LABELS[k]||k}</option>`).join('');
+}
+function minStatusOptions(cur){ return MIN_STATUSES.map(k=>`<option value="${k}" ${cur===k?'selected':''}>${MIN_LABELS[k]}</option>`).join(''); }
+function assignStatusSelect(r, a){ return `<select class="mini" onchange="setAssignmentStatus(${r.id},'${a.id}', this.value)">${statusOptions(a.status)}</select>`; }
+function fmtDate(d){ return new Date(d).toLocaleString('pt-BR'); }
+function historyHtml(h){ return (h||[]).map(x=>`${STATUS_LABELS[x.status]||x.status} (${fmtDate(x.at)})`).join(' → '); }
+function assignmentBlock(r, a){
+  const l = leaderById(a.leaderId);
+  const pool = a.kind==='acompanhamento' ? state.leaders.filter(x=>['acompanhamento','outro'].includes(x.type)) : state.leaders;
+  const leaderPart = l ? `<b>${esc(l.name)}</b>` : `<select class="mini" onchange="setAssignmentLeader(${r.id},'${a.id}',this.value)"><option value="">Sem responsável</option>${pool.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select>`;
+  const cellPart = a.kind==='celula' ? `<select class="mini" onchange="setAssignmentCell(${r.id},'${a.id}',this.value)"><option value="">Relacionar célula...</option>${state.cells.map(c=>`<option value="${c.id}" ${a.cellId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select>` : '';
+  const reserve = a.kind==='acompanhamento' ? (a.candidateIds||[]).filter(id=>id!==a.leaderId && leaderById(id)) : [];
+  const extra = a.kind==='acompanhamento' ? `${reserve.length?`<div class="person-sub">Reserva: ${reserve.map(leaderName).join(', ')}</div>`:''}${a.firstContactAt?`<div class="person-sub">Primeiro contato: ${fmtDate(a.firstContactAt)} por ${leaderName(a.contactedBy)}</div>`:''}` : '';
+  return `<div style="margin-bottom:10px;"><div><b>${esc(a.target)}</b> → ${leaderPart}</div>${extra}
+    <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">${assignStatusSelect(r,a)}${cellPart}</div>
+    <details><summary style="cursor:pointer; color:var(--muted); font-size:11.5px; margin-top:3px;">Histórico</summary><div style="color:var(--muted); font-size:11.5px;">${historyHtml(a.history)}</div></details></div>`;
+}
+function answerDetails(r){
+  return Object.entries(r.answers).map(([qid,val])=>{
+    if(qid.endsWith('__cell')){ const c = cellById(val); return c ? `<div style="margin-bottom:2px;"><span style="color:var(--muted)">Preferência de célula:</span> ${esc(c.name)}</div>` : ''; }
+    const q = state.questions.find(q=>q.id===qid);
+    return q ? `<div style="margin-bottom:2px;"><span style="color:var(--muted)">${esc(q.label)}:</span> ${esc(Array.isArray(val)?val.join(', '):val)}</div>` : '';
+  }).join('');
+}
+function renderVisitors(){
+  const wrap = document.getElementById('visitorsListPastor'); if(!wrap) return; const now = Date.now();
+  wrap.innerHTML = state.responses.length ? `<table class="resp"><tr><th>Visitante</th><th>Responsável</th><th>Status</th><th>Primeiro contato</th><th>Tempo</th><th>Interesse em servir</th><th>Respostas</th></tr>` +
+    [...state.responses].reverse().map(r=>{
+      const f = followupOf(r); const ints = state.serviceInterests.filter(i=>i.visitorId===r.id);
+      return `<tr><td><b>${esc(nameOf(r))}</b><div class="person-sub">${fmtDate(r.date)}</div></td><td>${leaderName(f&&f.leaderId)}</td><td>${f?vBadge(f.status):'—'}</td>
+        <td>${f&&f.firstContactAt?fmtClock(f.firstContactAt):'—'}</td><td>${f&&f.firstContactAt?fmtHM(new Date(f.firstContactAt)-new Date(r.date)):(f&&f.status==='pendente'?'aguardando '+fmtHM(now-new Date(r.date)):'—')}</td>
+        <td>${ints.length ? ints.map(i=>`<div style="margin-bottom:4px;">${esc(i.ministry)} · ${leaderName(i.leaderId)} ${mBadge(i.status)}</div>`).join('') : '<span style="color:var(--muted)">—</span>'}</td>
+        <td><details><summary style="cursor:pointer; color:var(--muted); font-size:12px;">Ver</summary>${answerDetails(r)}</details></td></tr>`;
+    }).join('') + `</table>` : `<div class="empty">Nenhum visitante respondeu o questionário ainda.</div>`;
+}
+function renderVisitorsAdm(){
+  const wrap = document.getElementById('visitorsListAdm'); if(!wrap) return;
+  wrap.innerHTML = state.responses.length ? `<table class="resp"><tr><th>Visitante</th><th>Acompanhamento e células</th><th>Respostas</th></tr>` +
+    [...state.responses].reverse().map(r=>`<tr><td><b>${esc(nameOf(r))}</b><div class="person-sub">${esc(whatsOf(r))} · ${fmtDate(r.date)}</div></td>
+      <td>${(r.assignments||[]).map(a=>assignmentBlock(r,a)).join('')}</td><td>${answerDetails(r)}</td></tr>`).join('') + `</table>` : `<div class="empty">Nenhum visitante respondeu o questionário ainda.</div>`;
+}
+function renderInterestsAdm(){
+  const el = document.getElementById('interestsListAdm'); if(!el) return;
+  const list = [...state.serviceInterests].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const leaders = state.leaders.filter(l=>l.status!=='inactive');
+  el.innerHTML = list.length ? `<table class="resp"><tr><th>Pessoa</th><th>Ministério</th><th>Responsável</th><th>Status</th><th>Origem</th></tr>` + list.map(i=>{
+    const p = interestPerson(i);
+    return `<tr><td><b>${esc(p.name)}</b><div class="person-sub">${esc(p.whatsapp||'')}${p.visitor?' · também é visitante':''}</div></td><td>${esc(i.ministry)}</td>
+      <td><select class="mini" onchange="setInterestLeader('${i.id}', this.value)"><option value="">Sem responsável</option>${leaders.map(l=>`<option value="${l.id}" ${l.id===i.leaderId?'selected':''}>${esc(l.name)}</option>`).join('')}</select></td>
+      <td><select class="mini" onchange="setInterestStatus('${i.id}', this.value)">${minStatusOptions(i.status)}</select>
+        ${i.firstContactAt?`<div class="person-sub">Primeiro contato: ${fmtDate(i.firstContactAt)} por ${leaderName(i.contactedBy)}</div>`:''}
+        <details><summary style="cursor:pointer; color:var(--muted); font-size:11.5px; margin-top:3px;">Histórico</summary><div style="color:var(--muted); font-size:11.5px;">${(i.history||[]).map(h=>`${MIN_LABELS[h.status]||h.status} (${fmtDate(h.at)})`).join(' → ')}</div></details></td>
+      <td>${i.source==='servir'?'QR Quero servir':'Questionário do visitante'}</td></tr>`;
+  }).join('') + `</table>` : `<div class="empty">Nenhum interesse em servir registrado ainda.</div>`;
+}
+/* ================= ÁREA DO LÍDER ================= */
+function populateLeaderSelect(){
+  const sel = document.getElementById('leaderViewSelect');
+  const current = sel.value;
+  sel.innerHTML = state.leaders.length ? state.leaders.map(l=>`<option value="${l.id}">${l.name}</option>`).join('') : `<option value="">Nenhum líder cadastrado</option>`;
+  if(current && state.leaders.some(l=>l.id===current)) sel.value = current;
+}
+function renderLeaderArea(){
+  populateLeaderSelect();
+  const leaderId = document.getElementById('leaderViewSelect').value;
+  const leader = leaderById(leaderId);
+  if(!leader){
+    ['leaderStats','leaderFollowList','leaderAssignedList','leaderHistoryList'].forEach(id=>document.getElementById(id).innerHTML = `<div class="empty">Cadastre um líder em Líderes e ministérios para ver esta área.</div>`);
+    document.getElementById('leaderProfileCard').innerHTML = `<div class="empty">Nenhum líder selecionado.</div>`;
+    return;
+  }
+  const mine = []; state.responses.forEach(r=>(r.assignments||[]).forEach(a=>{ if(a.leaderId===leaderId) mine.push({r,a}); }));
+  const novos = mine.filter(x=>x.a.status==='pendente'||x.a.status==='contatado');
+  const emAcomp = mine.filter(x=>x.a.status==='acompanhamento'||x.a.status==='encaminhado');
+  const historico = mine.filter(x=>['concluido','sem_interesse','nao_respondeu'].includes(x.a.status));
+
+  document.getElementById('leaderStats').innerHTML = `
+    <div class="card stat"><div class="stat-top"><div class="k">Total atribuídos</div><div class="ic ic-orange">${ic('users')}</div></div><div class="v">${mine.length}</div></div>
+    <div class="card stat"><div class="stat-top"><div class="k">Novos contatos</div><div class="ic ic-purple">${ic('user-plus')}</div></div><div class="v">${novos.length}</div></div>
+    <div class="card stat"><div class="stat-top"><div class="k">Em acompanhamento</div><div class="ic ic-orange">${ic('repeat')}</div></div><div class="v">${emAcomp.length}</div></div>
+    <div class="card stat"><div class="stat-top"><div class="k">Concluídos</div><div class="ic ic-purple">${ic('check-circle')}</div></div><div class="v">${mine.filter(x=>x.a.status==='concluido').length}</div></div>`;
+
+  const rowsFor = (list)=> list.length ? `<table class="resp"><tr><th>Visitante</th><th>Atribuição</th><th>Data</th><th>Status</th></tr>` +
+    list.map(({r,a})=>`<tr><td>${esc(nameOf(r))}<div style="font-size:11.5px; color:var(--muted)">${esc(whatsOf(r))}</div></td><td>${esc(a.target)}</td><td>${fmtDate(r.date)}</td><td>${assignStatusSelect(r,a)}</td></tr>`).join('') + `</table>` :
+    `<div class="empty">Nada por aqui.</div>`;
+  document.getElementById('leaderFollowList').innerHTML = rowsFor(emAcomp);
+  document.getElementById('leaderAssignedList').innerHTML = rowsFor(novos);
+  document.getElementById('leaderHistoryList').innerHTML = rowsFor(historico);
+
+  document.getElementById('leaderProfileCard').innerHTML = `
+    <div class="profile-card">${leaderAvatar(leader,64)}
+      <div><div style="font-weight:600; font-size:16px;">${esc(leader.name)}</div>
+      <div style="color:var(--muted); font-size:13px;">${esc(LEADER_TYPES[leader.type]||leader.role||'Líder')} · ${leader.responsavel==='secundario'?'Responsável secundário':'Responsável principal'}</div></div>
+    </div>
+    <div class="legend-item"><span>Ministério(s)</span><strong>${esc((leader.ministries||[]).join(', ')||'—')}</strong></div>
+    <div class="legend-item"><span>Célula(s)</span><strong>${esc(cellsOfLeader(leader.id).map(c=>c.name).join(', ')||'—')}</strong></div>
+    <div class="legend-item"><span>Faixa etária</span><strong>${(leader.ageMin||leader.ageMax)?`${leader.ageMin||'0'}–${leader.ageMax||'∞'} anos`:'todas as idades'}</strong></div>
+    <div class="legend-item"><span>WhatsApp</span><strong>${esc(leader.whatsapp||'—')}</strong></div>
+    <div class="legend-item"><span>E-mail</span><strong>${esc(leader.email||'—')}</strong></div>`;
+}
+
+/* ================= DADOS DE DEMONSTRAÇÃO ================= */
+function clearResponses(){
+  if(!confirm('Apagar todos os visitantes e interesses em servir cadastrados?')) return;
+  state.responses = []; state.serviceInterests = []; save(); renderAll();
+}
+function seedDemo(){
+  if(state.responses.length && !confirm('Isto adiciona visitantes de exemplo aos que já existem. Continuar?')) return;
+  let seed = 7; const rnd = ()=>{ seed = (seed*16807) % 2147483647; return seed/2147483647; };
+  const pick = arr=>arr[Math.floor(rnd()*arr.length)];
+  if(!state.leaders.length){
+    [['Ana Souza','ministerio',['Louvor','Dança'],'','', 'Líder de Louvor'], ['Pedro Lima','ministerio',['Intercessão'],'','', 'Líder de Intercessão'],
+     ['Carla Mendes','ministerio',['Juventude'],'13','25','Líder de Juventude'], ['Marcos Dias','celula',[],'','', 'Líder de células'],
+     ['Rita Alves','acompanhamento',[],'','', 'Acompanhamento geral']].forEach(([name,type,ms,mn,mx,role])=>state.leaders.push({id:uid(), name, photo:null, email:'', whatsapp:'', ministries:ms, role, type, ageMin:mn, ageMax:mx, responsavel:'principal', status:'active'}));
+  }
+  if(!state.cells.length){
+    const byName = n=>state.leaders.find(l=>l.name===n); const ml = byName('Marcos Dias');
+    state.cells.push({id:uid(), name:'Célula Centro', leaderIds:ml?[ml.id]:[], day:'Quarta', time:'19:30', region:'Centro', ageMin:'', ageMax:'', status:'active'},
+                     {id:uid(), name:'Célula Jovens', leaderIds:byName('Carla Mendes')?[byName('Carla Mendes').id]:[], day:'Sexta', time:'20:00', region:'Zona Sul', ageMin:'13', ageMax:'25', status:'active'});
+  }
+  const qs = state.questions; const byType = t=>qs.find(q=>q.type===t);
+  const firstQ = qs.find(q=>q.type==='boolean' && /primeira/i.test(q.label)), nameQ = byType('short'), wQ = byType('whatsapp'), ageQ = byType('age'), iQ = interestQ(), cQ = cellQ();
+  const oQ = qs.find(q=>q.type==='single' && /conheceu|origem/i.test(q.label)), pQ = qs.find(q=>/oração/i.test(q.label));
+  const names = ['Lucas Prado','Maria Clara','João Pedro','Beatriz Rocha','Gabriel Nunes','Larissa Melo','Felipe Costa','Amanda Reis','Rafael Torres','Julia Freitas','Thiago Ramos','Camila Duarte','Bruno Alves','Isabela Cruz','Daniel Vieira'];
+  const now = Date.now(); const DAY = 86400000; const made = [];
+  const mkAnswers = (i, first)=>{
+    const a = {}; const age = pick([9,14,16,17,19,21,23,24,28,33,38,45,52]);
+    if(firstQ) a[firstQ.id] = first ? 'Sim' : 'Não';
+    if(nameQ) a[nameQ.id] = names[i % names.length] + (i>=names.length?' '+(Math.floor(i/names.length)+1):'');
+    if(wQ) a[wQ.id] = '419'+String(90000000+i*137).slice(0,8);
+    if(ageQ) a[ageQ.id] = String(age);
+    if(oQ) a[oQ.id] = pick(['Instagram','Instagram','Google','Amigo/família','Amigo/família','Amigo/família','Evento','Indicação','Outro']);
+    if(iQ){ const opts = iQ.options.filter(o=>!NONE_RE.test(o)); const none = iQ.options.find(o=>NONE_RE.test(o));
+      if(rnd()<0.25 && none) a[iQ.id]=[none]; else { const n = 1+Math.floor(rnd()*2); const set = new Set(); for(let k=0;k<n;k++) set.add(pick(opts)); if(age<=25 && rnd()<0.5) set.add('Juventude'); a[iQ.id]=[...set]; } }
+    if(cQ){ if(rnd()<0.4){ a[cQ.id]='Sim'; const cs = state.cells.filter(c=>cellFitsAge(c,age)); if(cs.length && rnd()<0.5) a[cQ.id+'__cell']=pick(cs).id; } else a[cQ.id]='Não'; }
+    if(pQ) a[pQ.id] = rnd()<0.4 ? 'Sim' : 'Não';
+    return a;
+  };
+  const build = (answers, when, first)=>{
+    const iso = new Date(when).toISOString();
+    const r = {id:when+Math.floor(rnd()*1000), churchId:CHURCH_ID, date:iso, answers, status:'pendente', history:[], firstContactAt:null, firstResponseAt:null, visitorKey:keyOfAnswers(answers), assignments:[]};
+    r.assignments = computeAssignments(r);
+    const f = followupOf(r);
+    const contacted = rnd()<0.82; const delay = (rnd()<0.7 ? (0.5+rnd()*22) : (26+rnd()*90))*3600000;
+    if(contacted && now-when > delay){
+      const path = pick([['contatado'],['contatado'],['contatado','acompanhamento'],['contatado','acompanhamento'],['contatado','acompanhamento','concluido'],['nao_respondeu']]);
+      let t = when + delay;
+      path.forEach(st=>{ if(t>now) return; const at = new Date(t).toISOString();
+        f.status = st; f.history.push({status:st, at, by:f.leaderId});
+        if(REAL_CONTACT.includes(st) && !f.firstContactAt){ f.firstContactAt = at; f.contactedBy = f.leaderId; }
+        if(st==='concluido') f.completedAt = at;
+        t += (6+rnd()*60)*3600000; });
+      r.assignments.filter(a=>a.kind==='celula').forEach(a=>{ if(rnd()<0.5){ a.status='contatado'; a.history.push({status:'contatado', at:new Date(when+delay).toISOString(), by:a.leaderId}); } });
+    }
+    syncVisitorFromFollowup(r);
+    return r;
+  };
+  const seedInterest = (p, createdMs)=>{
+    const it = newInterest({...p, at:new Date(createdMs).toISOString()});
+    const d = (1+rnd()*30)*3600000;
+    if(it.leaderId && rnd()<0.75 && now-createdMs > d){
+      const path = pick([['contatado'],['contatado','em_processo'],['contatado','em_processo','concluido'],['contatado','sem_interesse']]);
+      let t = createdMs + d;
+      path.forEach(st=>{ if(t>now) return; const at = new Date(t).toISOString(); it.status = st; it.history.push({status:st, at, by:it.leaderId});
+        if(MIN_CONTACT.includes(st) && !it.firstContactAt){ it.firstContactAt = at; it.contactedBy = it.leaderId; }
+        if(st==='concluido') it.completedAt = at; t += (12+rnd()*72)*3600000; });
+    }
+    state.serviceInterests.push(it);
+  };
+  for(let i=0;i<38;i++){
+    const daysAgo = Math.floor(Math.pow(rnd(),1.2)*60); const base = new Date(now - daysAgo*DAY);
+    base.setHours(rnd()<0.7 ? 9+Math.floor(rnd()*3) : 18+Math.floor(rnd()*3), Math.floor(rnd()*60), 0, 0);
+    if(rnd()<0.6){ const shift = (base.getDay()===0)?0:(7-base.getDay()); base.setDate(base.getDate()+shift); if(base.getTime()>now) base.setDate(base.getDate()-7); }
+    made.push(build(mkAnswers(i, true), base.getTime(), true));
+  }
+  for(let k=0;k<9;k++){
+    const src = made[k*3]; const gap = pick([5,7,12,20,35,60]); const when = new Date(src.date).getTime() + gap*DAY;
+    if(when>now) continue;
+    const a = {...src.answers}; if(firstQ) a[firstQ.id]='Não';
+    made.push(build(a, when, false));
+  }
+  state.responses.push(...made); state.responses.sort((a,b)=>new Date(a.date)-new Date(b.date));
+  made.forEach(r=>{
+    if(rnd()>=0.45 || !state.ministries.length) return;
+    const ms = new Set(); const n = 1+(rnd()<0.3?1:0); for(let k=0;k<n;k++) ms.add(pick(state.ministries));
+    ms.forEach(m=>{ const at = new Date(r.date).getTime() + (0.2+rnd()*3)*3600000; if(at>now) return;
+      seedInterest({name:nameOf(r), whatsapp:whatsOf(r), age:ageOf(r), ministry:m, visitorId:r.id, visitorKey:r.visitorKey, source:'visitante'}, at); });
+  });
+  const solo = [['Rodrigo Pinto',27],['Sabrina Lopes',31],['Tiago Moura',19],['Patrícia Gomes',44],['Vinícius Braga',16],['Helena Matos',23],['Caio Ferraz',35]];
+  solo.forEach(([name,age],k)=>{ const at = now - Math.floor(rnd()*45)*DAY - Math.floor(rnd()*10)*3600000; const m = pick(state.ministries);
+    const whats = '41988'+String(100000+k*731).slice(0,6);
+    seedInterest({name, whatsapp:whats, age, ministry:m, visitorId:null, visitorKey:keyOfWhats(whats), source:'servir'}, at); });
+  save(); renderAll();
+}
+
+/* ================= RENDER ALL ================= */
+function renderAll(){
+  qRefreshTheme(); renderBuilder(); loadAppearanceForm(); paintBrand();
+  renderLeaders(); renderCells(); renderDistribution(); renderDashboard(); renderAgenda(); renderInsightsPage(); renderReports(); renderVisitors(); renderVisitorsAdm(); renderInterestsAdm();
+  renderLeaderArea();
+  paintStaticIcons();
+}
+buildColorFields();
+renderAll();
+qStart('visitor'); qStart('servir');
+routeFromHash();
+</script>
+</body>
+</html>
